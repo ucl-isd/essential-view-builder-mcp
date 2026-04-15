@@ -43,11 +43,11 @@
 
 	<xsl:variable name="busObjMeasureValuesA2O" select="/node()/simple_instance[name = $actor2Objective/own_slot_value[slot_reference = ('act_to_obj_target_value', 'act_to_obj_target_values')]/value]"/>
 	
-	<xsl:variable name="busObjMeasureValuesOld" select="/node()/simple_instance[name = $currentObj/own_slot_value[slot_reference = 'bo_measures']/value]"/>
+	<xsl:variable name="busObjMeasureValuesNew" select="/node()/simple_instance[name = $currentObj/own_slot_value[slot_reference = 'bo_performance_measures']/value]"/>
 
-	<xsl:variable name="busObjMeasureValues" select="$busObjMeasureValuesA2O union $busObjMeasureValuesOld"/>
+	<xsl:variable name="busObjMeasureValues" select="$busObjMeasureValuesA2O union $busObjMeasureValuesNew"/>
 
-	<xsl:variable name="busObjMeasures" select="/node()/simple_instance[name = $busObjMeasureValues/own_slot_value[slot_reference = 'usage_of_service_quality']/value]"/>
+	<xsl:variable name="busObjMeasures" select="/node()/simple_instance[name = $busObjMeasureValues/own_slot_value[slot_reference = ('usage_of_service_quality', 'obj_to_svc_quality_service_quality')]/value]"/>
 
 	<xsl:variable name="busObjOrgOwnersOld" select="/node()/simple_instance[name = $currentObj/own_slot_value[slot_reference = 'bo_owners']/value]"/>
 	<xsl:variable name="busObjIndividualOwnersOld" select="/node()/simple_instance[name = $currentObj/own_slot_value[slot_reference = 'bo_owners']/value]"/>

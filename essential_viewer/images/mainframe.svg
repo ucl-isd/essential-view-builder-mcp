@@ -1,0 +1,51 @@
+<svg width="600" height="700" viewBox="0 0 600 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="obsidian_front" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3C4043" />
+      <stop offset="100%" style="stop-color:#202124" />
+    </linearGradient>
+
+    <linearGradient id="glass_panel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4285F4; stop-opacity:0.1" />
+      <stop offset="50%" style="stop-color:#FFFFFF; stop-opacity:0.05" />
+      <stop offset="100%" style="stop-color:#4285F4; stop-opacity:0.1" />
+    </linearGradient>
+
+    <pattern id="heatsink" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="5" x2="10" y2="5" stroke="#171717" stroke-width="2" />
+    </pattern>
+
+    <filter id="bloom" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+ 
+  <g transform="translate(0, 50)">
+    <path d="M300 150 L480 80 V500 L300 570 Z" fill="#202124" />
+    <path d="M310 160 L470 100 V490 L310 550 Z" fill="url(#heatsink)" opacity="0.5" />
+    
+    <path d="M300 150 L120 80 V500 L300 570 Z" fill="url(#obsidian_front)" />
+    
+    <path d="M300 150 L480 80 L300 10 L120 80 Z" fill="#4A4E52" />
+
+    <path d="M140 120 L280 175 V530 L140 475 Z" fill="url(#glass_panel)" stroke="#FFFFFF" stroke-opacity="0.1" />
+
+    <g filter="url(#bloom)">
+      <rect x="155" y="150" width="4" height="4" fill="#4285F4" transform="skewY(22)" />
+      <rect x="155" y="165" width="4" height="4" fill="#4285F4" transform="skewY(22)" opacity="0.6" />
+      
+      <circle cx="175" cy="180" r="2.5" fill="#34A853" transform="translate(0, 10)">
+        <animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="175" cy="195" r="2.5" fill="#FBBC04" transform="translate(0, 20)" />
+      <circle cx="175" cy="210" r="2.5" fill="#EA4335" transform="translate(0, 30)" opacity="0.8" />
+    </g>
+
+    <path d="M120 80 L300 150 L480 80" stroke="white" stroke-width="0.8" opacity="0.2" fill="none" />
+    <path d="M300 150 L300 570" stroke="white" stroke-width="1.2" opacity="0.1" fill="none" />
+  </g>
+</svg>

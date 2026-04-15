@@ -1426,13 +1426,7 @@
          {"source": 2, "target": 5, "label":"application_deployment_role"},
         { "source": 2, "target": 3, "label": "application_deployment_technology_instance" },
         { "source": 3, "target": 4, "label": "technology_instance_deployed_on_node" }
-         ],
-      "edges": [
-            { "source": 1, "target": 2, "label": "deployments_of_application_provider"},
-         {"source": 2, "target": 5, "label":"application_deployment_role"},
-        { "source": 2, "target": 3, "label": "application_deployment_technology_instance" },
-        { "source": 3, "target": 4, "label": "technology_instance_deployed_on_node" }
-        ]
+         ]
     },
     {
       "id": "roadmaps",

@@ -1,0 +1,66 @@
+<svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Soft neon glow -->
+    <filter id="neonGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g transform="translate(0, 10)">
+    <path d="M200 110 L340 60 V100 L200 150 Z" fill="#BDC1C6" />
+    <path d="M200 110 L60 60 V100 L200 150 Z" fill="#80868B" />
+    <path d="M200 110 L340 60 L200 10 L60 60 Z" fill="#F8F9FA" />
+  <g>
+    <rect x="155" y="55" width="6" height="6" transform="skewY(20)" fill="#FF2D55" filter="url(#neonGlow)" opacity="0.55">
+      <animate attributeName="opacity" values="0.25;0.95;0.25" dur="1.15s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="155" y="55" width="6" height="6" transform="skewY(20)" fill="#FF2D55">
+      <animate attributeName="opacity" values="0.85;1;0.85" dur="1.15s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- 2 -->
+  <g>
+    <rect x="95" y="55" width="6" height="6" transform="skewY(20)" fill="#00E5FF" filter="url(#neonGlow)" opacity="0.55">
+      <animate attributeName="opacity" values="0.20;0.90;0.20" dur="0.85s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="95" y="55" width="6" height="6" transform="skewY(20)" fill="#00E5FF">
+      <animate attributeName="opacity" values="0.85;1;0.85" dur="0.85s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- 3 -->
+  <g>
+    <rect x="110" y="55" width="6" height="6" transform="skewY(20)" fill="#39FF14" filter="url(#neonGlow)" opacity="0.55">
+      <animate attributeName="opacity" values="0.30;1;0.30" dur="1.65s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="110" y="55" width="6" height="6" transform="skewY(20)" fill="#39FF14">
+      <animate attributeName="opacity" values="0.85;1;0.85" dur="1.65s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- 4 -->
+  <g>
+    <rect x="125" y="55" width="6" height="6" transform="skewY(20)" fill="#FFD60A" filter="url(#neonGlow)" opacity="0.55">
+      <animate attributeName="opacity" values="0.22;0.92;0.22" dur="1.05s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="125" y="55" width="6" height="6" transform="skewY(20)" fill="#FFD60A">
+      <animate attributeName="opacity" values="0.85;1;0.85" dur="1.05s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- 5 -->
+  <g>
+    <rect x="140" y="55" width="6" height="6" transform="skewY(20)" fill="#B026FF" filter="url(#neonGlow)" opacity="0.55">
+      <animate attributeName="opacity" values="0.18;0.98;0.18" dur="1.95s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="140" y="55" width="6" height="6" transform="skewY(20)" fill="#B026FF">
+      <animate attributeName="opacity" values="0.85;1;0.85" dur="1.95s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+    <circle cx="75" cy="72" r="2" fill="#34A853" />
+  </g>
+</svg>

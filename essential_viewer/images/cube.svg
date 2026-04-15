@@ -1,0 +1,46 @@
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="200" cy="320" rx="100" ry="20" fill="#3C4043" opacity="0.05" />
+
+  <g transform="translate(0, 20)">
+
+    <!-- VERY SUBTLE WHITE FACES -->
+    <!-- Top face -->
+    <path d="M200 180 L310 125 L200 70 L90 125 Z"
+          fill="#ffffff"
+          opacity="0.88" />
+
+    <!-- Left face -->
+    <path d="M90 125 V235 L200 290 V180 Z"
+          fill="#ffffff"
+          opacity="0.86" />
+
+    <!-- Right face -->
+    <path d="M310 125 V235 L200 290 V180 Z"
+          fill="#ffffff"
+          opacity="0.80" />
+
+    <!-- Dashed construction lines -->
+    <path d="M200 70 L310 125 V235 L200 290"
+          fill="none"
+          stroke="#000000"
+          stroke-width="2"
+          stroke-dasharray="6,4"
+          opacity="0.3" />
+
+    <path d="M90 125 L200 70"
+          fill="none"
+          stroke="#000000"
+          stroke-width="2"
+          stroke-dasharray="6,4"
+          opacity="0.3" />
+
+    <!-- Main cube outline -->
+    <g fill="none" stroke="#000000" stroke-width="2.5" stroke-dasharray="8,5">
+      <path d="M200 180 L310 125 L200 70 L90 125 Z" />
+      <path d="M90 125 V235 L200 290 V180" />
+      <path d="M310 125 V235 L200 290" />
+    </g>
+
+    <circle cx="200" cy="180" r="3" fill="#DADCE0" />
+  </g>
+</svg>

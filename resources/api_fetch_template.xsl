@@ -8,11 +8,16 @@
     <!-- ALL SIX INCLUDES ARE MANDATORY — omitting any one causes silent failure or XSLT errors -->
     <xsl:include href="../common/core_doctype.xsl"/>
     <xsl:include href="../common/core_common_head_content.xsl"/>
-    <xsl:include href="../common/core_header.xsl"/>
-    <xsl:include href="../common/core_footer.xsl"/>
-    <xsl:include href="../common/core_external_doc_ref.xsl"/>
-    <!-- core_api_fetcher.xsl is NOT transitively included — it MUST be listed explicitly -->
-    <xsl:include href="../common/core_api_fetcher.xsl"/>
+    <xsl:include href="../common/core_header.xsl"/>        <!-- Provided template: Heading (Includes ViewUserScopingUI and transitively includes viewer_security.xsl) -->
+	<xsl:include href="../common/core_footer.xsl"/>        <!-- Provided template: Footer -->
+	<xsl:include href="../common/core_external_doc_ref.xsl"/>
+	<xsl:include href="../common/core_api_fetcher.xsl"/>   <!-- NO NOT REMOVE: Required for API loading mechanism -->
+	
+	
+	<!-- 
+		SECURITY WARNING: 
+		DO NOT manually include viewer_security.xsl. It is transitively included via core_header.xsl.
+	-->
 
     <!-- OPTIONAL includes — only add if your view needs them:
     <xsl:include href="../common/core_handlebars_functions.xsl"/>

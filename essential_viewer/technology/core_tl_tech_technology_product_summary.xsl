@@ -350,6 +350,9 @@
                                             {{#if this.vendor_product_lifecycle_status}}
                                             <label><xsl:value-of select="eas:i18n('Vendor Lifecycle')"/></label> <div class="ess-string"><xsl:attribute name="style">color:{{this.vendor_product_lifecycle_status.0.colour}};background-color:{{this.vendor_product_lifecycle_status.0.backgroundColor}}</xsl:attribute>{{this.vendor_product_lifecycle_status.0.name}}</div><br/>
                                             {{/if}}
+                                            {{#if this.tl_disposition_lifecycle_status}}
+                                            <label><xsl:value-of select="eas:i18n('Disposition Lifecycle Status')"/></label> <div class="ess-string"><xsl:attribute name="style">color:{{this.tl_disposition_lifecycle_status.0.colour}};background-color:{{this.tl_disposition_lifecycle_status.0.backgroundColor}}</xsl:attribute>{{this.tl_disposition_lifecycle_status.0.name}}</div><br/>
+                                            {{/if}}
                                             {{#if lifecycles}}
                                                 {{#each this.lifecycles}} 
                                                     {{#ifEquals this.dates.0.type 'Lifecycle_Status'}}
@@ -358,6 +361,10 @@
                                                     {{/ifEquals}}
                                                     {{#ifEquals this.dates.0.type 'Vendor_Lifecycle_Status'}}
                                                     <label><xsl:value-of select="eas:i18n('Vendor Lifecycle')"/></label>
+                                                    <div class="ess-string"><xsl:attribute name="style">color:{{this.activeDate.colour}};background-color:{{this.activeDate.backgroundColour}}</xsl:attribute>{{this.activeDate.name}}</div> 
+                                                    {{/ifEquals}}
+                                                    {{#ifEquals this.dates.0.type 'Disposition_Lifecycle_Status'}}
+                                                    <label><xsl:value-of select="eas:i18n('Disposition Lifecycle Status')"/></label>
                                                     <div class="ess-string"><xsl:attribute name="style">color:{{this.activeDate.colour}};background-color:{{this.activeDate.backgroundColour}}</xsl:attribute>{{this.activeDate.name}}</div> 
                                                     {{/ifEquals}}
                                                 {{/each}}

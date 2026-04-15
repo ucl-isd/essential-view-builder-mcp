@@ -53,7 +53,7 @@
 <xsl:variable name="targetSlots" select="$techSlots/own_slot_value[slot_reference=':SLOT-VALUE-TYPE']/value[2]"/>
 <xsl:variable name="alltechSlots" select="$techSlots[own_slot_value[slot_reference=':SLOT-VALUE-TYPE']/value=$enumClass/name]"/> 
 <xsl:variable name="allthisSlotsBoo" select="$techSlots[own_slot_value[slot_reference=':SLOT-VALUE-TYPE']/value='Boolean']"/> 
-<xsl:variable name="allEnumClass" select="$enumClass[name=$targetSlots] union $enumClass[name='Deployment_Status']"/> 
+<xsl:variable name="allEnumClass" select="$enumClass[name=$targetSlots] union $enumClass[name='Deployment_Status'] union $enumClass[name='Disposition_Lifecycle_Status']"/> 
 <xsl:key name="allTechFamily" match="/node()/simple_instance[type='Technology_Product_Family']" use="own_slot_value[slot_reference='groups_technology_products']/value"/>
 <xsl:key name="geo" match="/node()/simple_instance[supertype='Geography']" use="name"/>
 <xsl:key name="actor" match="/node()/simple_instance[type='Group_Actor']" use="name"/>
@@ -199,6 +199,7 @@
 		"techOrgUsers": [<xsl:for-each select="$thsTechUsers">"<xsl:value-of select="eas:getSafeJSString(.)"/>"<xsl:if test="not(position()=last())">, </xsl:if></xsl:for-each>],
 		"orgUserIds": [<xsl:for-each select="$thisTechOrgUser2Roles">"<xsl:value-of select="eas:getSafeJSString(current()/name)"/>"<xsl:if test="not(position() = last())"><xsl:text>,</xsl:text></xsl:if></xsl:for-each>], 
 		"visId":["<xsl:value-of select="eas:getSafeJSString(current()/own_slot_value[slot_reference='system_content_lifecycle_status']/value)"/>"],		
+		"tl_disposition_lifecycle_status": [<xsl:for-each select="current()/own_slot_value[slot_reference='tl_disposition_lifecycle_status']/value">"<xsl:value-of select="eas:getSafeJSString(.)"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
 		<xsl:for-each select="$alltechSlots"><xsl:variable name="slt" select="current()/name"/>"<xsl:value-of select="$slt"/>":[<xsl:for-each select="$thisTechProd/own_slot_value[slot_reference=$slt]/value">"<xsl:value-of select="eas:getSafeJSString(.)"/>"<xsl:if test="not(position() = last())"><xsl:text>,</xsl:text></xsl:if></xsl:for-each>], </xsl:for-each>
 		<xsl:call-template name="RenderSecurityClassificationsJSONForInstance"><xsl:with-param name="theInstance" select="current()"/></xsl:call-template>} <xsl:if test="not(position()=last())">,
 	</xsl:if>
@@ -211,7 +212,7 @@
 		"name": "<xsl:value-of select="translate(current()/name, '_',' ')"/>",
 		"valueClass": "<xsl:value-of select="current()/name"/>",
 		"description": "",
-		"slotName":"<xsl:value-of select="$thisSlot/name"/>",
+		"slotName":"<xsl:choose><xsl:when test="current()/name = 'Disposition_Lifecycle_Status'">tl_disposition_lifecycle_status</xsl:when><xsl:otherwise><xsl:value-of select="$thisSlot/name"/></xsl:otherwise></xsl:choose>",
 		"isGroup": false,
 		"icon": "fa-circle",
 		"color":"#93592f",

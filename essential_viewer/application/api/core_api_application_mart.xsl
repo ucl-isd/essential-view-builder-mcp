@@ -502,7 +502,8 @@
 				}" />
 				<xsl:variable name="resultCombined" select="serialize($combinedMap, map{'method':'json', 'indent':true()})" />
 				<xsl:value-of select="substring-before(substring-after($resultCombined,'{'),'}')"/>,
-				<xsl:call-template name="RenderSecurityClassificationsJSONForInstance"><xsl:with-param name="theInstance" select="current()"/></xsl:call-template>}<xsl:if test="position()!=last()">,</xsl:if></xsl:for-each>]
+				<xsl:call-template name="RenderSecurityClassificationsJSONForInstance"><xsl:with-param name="theInstance" select="current()"/></xsl:call-template>}<xsl:if test="position()!=last()">,</xsl:if></xsl:for-each>],
+				<xsl:call-template name="RenderSecurityClassificationsJSONForInstance"><xsl:with-param name="theInstance" select="current()"/></xsl:call-template>
 			}<xsl:if test="position()!=last()">,</xsl:if>
 </xsl:template>
 <xsl:template mode="renderCurrencies" match="node()">                           

@@ -587,6 +587,7 @@
 						white-space: nowrap;
 						overflow: hidden;
 						text-overflow: ellipsis;
+						color: #fff;
 					}
 					
 					.appInfoButton {
@@ -3050,6 +3051,14 @@
 	let { capToObjMap, businessGoalsMap } = createMaps(busGoals);
    
 		let styleSetting = localStorage.getItem('busCapConfig') || repoSetting;
+		function updateBlobLevelVisibility(styleValue) {
+			if (String(styleValue) === '2') {
+				$('#blobLevel').hide();
+			} else {
+				$('#blobLevel').show();
+			}
+		}
+		updateBlobLevelVisibility(styleSetting);
 		 
 		var originalPositions = {}; 
 		var level=0;
@@ -4452,16 +4461,19 @@ processCountMap = processMap.reduce((acc, item) => {
                         localStorage.setItem('busCapConfig', 0);
                         $('#subroot').show();
                         $('#capModelHolder').html(l0CapTemplate(workingArrayBusCapHierarchy))
+						updateBlobLevelVisibility(0);
                         getStyle(0) 
                           } 
                       else if(this.id === "brick") {
                         localStorage.setItem('busCapConfig', 1);
                         $('#subroot').show();
                         $('#capModelHolder').html(l0CapTemplate(workingArrayBusCapHierarchy))
+						updateBlobLevelVisibility(1);
                         getStyle(1) 
                       } 
                       else if(this.id === "herm") {
                         localStorage.setItem('busCapConfig', 2);
+						updateBlobLevelVisibility(2);
                         getHermModel()
                         
                            
@@ -4615,6 +4627,7 @@ processCountMap = processMap.reduce((acc, item) => {
                     $('#herm').prop('checked', true)
                     getHermModel();
 				} 
+				updateBlobLevelVisibility(styleSet);
             }
 			
 			if (styleSetting !== '2') {
@@ -5746,6 +5759,7 @@ let workingMatchedBuscapAndProcessIds = Object.fromEntries(idToProcessCountMap);
 		
 			if (appCount !== 0) {
 				$capElements.parent().removeClass("off-cap");
+				$capElements.removeClass("off-cap");
 			} else {
 				colour = '#d3d3d3';
 				$capElements.each(function () {

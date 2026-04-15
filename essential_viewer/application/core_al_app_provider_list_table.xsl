@@ -373,7 +373,10 @@ const apiDataSets = [
 ];
 
 Promise.all(
-    apiDataSets.map((url) => promise_loadViewerAPIData(url))
+    apiDataSets.map((url) => promise_loadViewerAPIData(url).catch(e => {
+        console.warn("Could not load API dataset: " + url);
+        return {}; 
+    }))
 )
 .then(function (responses) {
     //console.log("All data loaded");
@@ -573,11 +576,16 @@ let svcArr = [];
 let lifecycleArr = [];
   showEditorSpinner('Fetching Data')
 Promise.all([
-    promise_loadViewerAPIData(viewAPIData),
-    promise_loadViewerAPIData(viewAPIDataSvc),
-    promise_loadViewerAPIData(viewAPIDataMart),
-    promise_loadViewerAPIData(viewAPIDataOrgs)
+    promise_loadViewerAPIData(viewAPIData).catch(e => { console.warn("Failed loading Base App Data from URL: " + viewAPIData); return { meta: [], filters: [], applications: [], apis: [], lifecycles: [] }; }),
+    promise_loadViewerAPIData(viewAPIDataSvc).catch(e => { console.warn("Failed loading Services Data from URL: " + viewAPIDataSvc); return { applications_to_services: [] }; }),
+    promise_loadViewerAPIData(viewAPIDataMart).catch(e => { console.warn("Failed loading App Mart Data from URL: " + viewAPIDataMart); return { applications: [] }; }),
+    promise_loadViewerAPIData(viewAPIDataOrgs).catch(e => { console.warn("Failed loading Stakeholder Data from URL: " + viewAPIDataOrgs); return { a2rs: [] }; })
 ]).then(function(responses) {
+    if(!responses || !responses[0] || !responses[0].meta) {
+        console.error("API response parsing failed or was aborted");
+        removeEditorSpinner();
+        return;
+    }
     meta = responses[0].meta;
     filters = responses[0].filters;
     workingArr = responses[0].applications;
@@ -693,10 +701,10 @@ Promise.all([
         let martMatch = martApps.find((e) => {
             return d.id == e.id;
         }); 
-		d['family'] = martMatch.family;
-        d['supplier'] = martMatch.supplier || '';
-        d['ea_reference'] = martMatch.ea_reference || '';
-        d['short_name'] = martMatch.short_name || '';
+		d['family'] = martMatch?.family || '';;
+        d['supplier'] = martMatch?.supplier || '';
+        d['ea_reference'] = martMatch?.ea_reference || '';
+        d['short_name'] = martMatch?.short_name || '';
         slotNames.forEach((s) => {
             if (d[s.id]) {
                 d[s.id] = getSlot(s.id, d[s.id])

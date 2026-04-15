@@ -55,6 +55,7 @@
 	--> 	 
 	<xsl:variable name="techData" select="$utilitiesAllDataSetAPIs[own_slot_value[slot_reference = 'name']/value = 'Core API: Technology Products and Suppliers']"></xsl:variable>
     <xsl:variable name="orgData" select="$utilitiesAllDataSetAPIs[own_slot_value[slot_reference = 'name']/value = 'Core API: Group Actors']"></xsl:variable>
+	<xsl:variable name="lifecycleData" select="$utilitiesAllDataSetAPIs[own_slot_value[slot_reference = 'name']/value = 'Core API: Technology Lifecycles']"></xsl:variable>
 
  
     <xsl:template match="knowledge_base">
@@ -69,6 +70,12 @@
 				<xsl:with-param name="apiReport" select="$orgData"></xsl:with-param>
 			</xsl:call-template>
 		</xsl:variable>
+		<xsl:variable name="apiLifecycles">
+    		<xsl:call-template name="GetViewerAPIPath">
+        		<xsl:with-param name="apiReport" select="$lifecycleData"/>
+    		</xsl:call-template>
+		</xsl:variable>
+
         
 		<html>
 			<head>
@@ -155,6 +162,15 @@
 						background-color:#d3d3d3;
 					}
                     .lifecycleBox{
+                        width:80px;
+                        height:60px;
+                        display:inline-block;
+                        border-radius: 0px 4px 40px 0px;
+                        padding:2px;
+                        margin-bottom:2px;
+                        vertical-align:top;
+                    }
+					.internallifecycleBox{
                         width:80px;
                         height:60px;
                         display:inline-block;
@@ -273,6 +289,11 @@
 					<div class="lifecycleBox"><xsl:attribute name="style">color:{{this.statusColour}};background-color:{{this.statusBgColour}}</xsl:attribute><small><xsl:text> </xsl:text>{{this.status}}<br/>{{this.formattedStartDate}}</small></div>
 				{{/each}}      
 			</script>
+			<script id="internalLifecycle-template" type="text/x-handlebars-template">
+				{{#each this.internal_lifecycle}}
+					<div class="internallifecycleBox"><xsl:attribute name="style">color:{{this.statusColour}};background-color:{{this.statusBgColour}}</xsl:attribute><small><xsl:text> </xsl:text>{{this.status}}<br/>{{this.formattedStartDate}}</small></div>
+				{{/each}}      
+			</script>
             <script id="compstandards-template" type="text/x-handlebars-template">
 				{{#each this.comp}}
 					<div class="componentBox"><xsl:text> </xsl:text>{{this.name}}</div>  
@@ -298,7 +319,8 @@
 			<script>			
 				<xsl:call-template name="RenderViewerAPIJSFunction">
                     <xsl:with-param name="viewerAPIPathapiTechProds" select="$apiTechProds"></xsl:with-param>  
-					<xsl:with-param name="viewerAPIPathOrgs" select="$apiOrgs"></xsl:with-param>  
+					<xsl:with-param name="viewerAPIPathOrgs" select="$apiOrgs"></xsl:with-param>
+    				<xsl:with-param name="viewerAPIPathLifecycles" select="$apiLifecycles"></xsl:with-param>
 				</xsl:call-template>  
 			</script>
 		</html>
@@ -308,9 +330,11 @@
 	<xsl:template name="RenderViewerAPIJSFunction">
         <xsl:param name="viewerAPIPathapiTechProds"></xsl:param>  
 		<xsl:param name="viewerAPIPathOrgs"></xsl:param>
+		<xsl:param name="viewerAPIPathLifecycles"></xsl:param>
 		//a global variable that holds the data returned by an Viewer API Report
         var viewAPIData = '<xsl:value-of select="$viewerAPIPathapiTechProds"/>'; 
 		var viewAPIDataOrgs = '<xsl:value-of select="$viewerAPIPathOrgs"/>';  
+		var viewAPIDataLifecycles = '<xsl:value-of select="$viewerAPIPathLifecycles"/>';
 		//set a variable to a Promise function that calls the API Report using the given path and returns the resulting data
 		
 		var promise_loadViewerAPIData = function (apiDataSetURL) {
@@ -318,21 +342,34 @@
 				if (apiDataSetURL != null) {
 					var xmlhttp = new XMLHttpRequest();
 					xmlhttp.onreadystatechange = function () {
-						if (this.readyState == 4 &amp;&amp; this.status == 200) {
-
-							var viewerData = JSON.parse(this.responseText);
-							resolve(viewerData);
-							$('#ess-data-gen-alert').hide();
+						if (this.readyState == 4) {
+							if (this.status == 200) {
+								try {
+									var viewerData = JSON.parse(this.responseText);
+								resolve(viewerData);
+								$('#ess-data-gen-alert').hide();
+								return;
+							} catch (parseErr) {
+								reject(parseErr);
+								return;
+							}
+							} else {
+								reject(new Error('Viewer API returned status ' + this.status + ' for ' + apiDataSetURL));
+								return;
+							}
 						}
 					};
 					xmlhttp.onerror = function () {
-						reject(false);
+						reject(new Error('XHR error calling ' + apiDataSetURL));
 					};
-
+					try { xmlhttp.timeout = 60000; } catch (e) { /* ignore */ }
+					xmlhttp.ontimeout = function () {
+						reject(new Error('Timeout calling ' + apiDataSetURL));
+					};
 					xmlhttp.open("GET", apiDataSetURL, true);
 					xmlhttp.send();
 				} else {
-					reject(false);
+					reject(new Error('Viewer API URL is null'));
 				}
 			});
 		};
@@ -354,6 +391,7 @@
 		var jsonConfig = '<xsl:value-of select="eas:renderJSText($reportConfig)"/>';
 		var catalogueTable
 		var colSettings;
+
 		$('document').ready(function () {
 			listFragment = $("#list-template").html();
             listTemplate = Handlebars.compile(listFragment);
@@ -368,6 +406,23 @@
 			enumTemplate = Handlebars.compile(enumFragment);
 
 			const essLinkLanguage = '<xsl:value-of select="$i18n"/>';
+
+			function essIsValidDateValue(v) {
+				if (!v) return false;
+				var d = new Date(v);
+				return !!(d &amp;&amp; !isNaN(d.getTime()));
+			}
+
+			function essSafeFormatDateForLocale(v, locale) {
+				try {
+					if (!essIsValidDateValue(v)) return '';
+					// formatDateforLocale may still throw if it can't handle the value/locale
+					var s = formatDateforLocale(v, locale);
+					return (s == null) ? '' : String(s);
+				} catch (e) {
+					return '';
+				}
+			}
 
 			function essGetMenuName(instance) { 
 		        let menuName = null;
@@ -517,9 +572,11 @@
             let svcArr=[];
             let lifecycleArr=[]; 
 			Promise.all([
-                promise_loadViewerAPIData(viewAPIData),
-				promise_loadViewerAPIData(viewAPIDataOrgs)
-			]).then(function (responses) { 
+				promise_loadViewerAPIData(viewAPIData),
+				promise_loadViewerAPIData(viewAPIDataOrgs),
+				promise_loadViewerAPIData(viewAPIDataLifecycles)
+			]).then(function (responses) {
+
 				filters=responses[0].filters;  
                 vendorLifecycleStatus=filters.filter((e)=>{return e.id == 'Vendor_Lifecycle_Status'})
  
@@ -535,9 +592,23 @@
                     });
                 });
 				 
+				const internalLifecycleStatusMap = new Map();
+
+				responses[2].lifecycleJSON?.forEach(value => {
+					if (value.type === 'Lifecycle_Status') {
+						internalLifecycleStatusMap.set(value.id, {
+							name: value.name,
+							sequence: value.seq,
+							backgroundColor: value.backgroundColour,
+							colour: value.colour
+						});
+					}
+				});
+
+
                 meta=responses[0].meta;
                 workingArr = responses[0].technology_products;  
-				workingArr = workingArr.sort((a, b) => b.name.localeCompare(a.name));
+				workingArr = workingArr.sort((a, b) => a.name.localeCompare(b.name));
 				
                 orgsRolesList=responses[1].a2rs;
 			 
@@ -613,18 +684,30 @@
 				"title": "Vendor Lifecycle"		
 
             })
+			colSettings.push({
+                "data":"internal_lifecycle",
+				"width": "350px", 
+				"visible": false,
+				"title": "Internal Lifecycle"		
+
+            })
 
 			// Apply JSON configuration for column visibility
 			var config = {};
-			console.log("JSON Config:", jsonConfig); // Debug log to check the value of jsonConfig
+		//	console.log("JSON Config:", jsonConfig); // Debug log to check the value of jsonConfig
 			try {
-				if (jsonConfig &amp;&amp; jsonConfig !== '') {
-					config = JSON.parse(jsonConfig);
+				if (jsonConfig &amp;&amp; jsonConfig.trim() !== '' &amp;&amp;  jsonConfig.trim() !== '{}') {
+
+					const parsed = JSON.parse(jsonConfig);
+
+					if (Object.keys(parsed).length &gt; 0) {
+						config = parsed;
+					}
 				}
 			} catch (e) {
 				console.error("Error parsing jsonConfig", e);
 			}
-console.log("JSON Config:", config); 
+		// console.log("JSON Config:", config); 
 			if (config.tableConfig) {
 				colSettings.forEach(function(col) {
 					if (config.tableConfig.hasOwnProperty(col.data)) {
@@ -638,6 +721,7 @@ console.log("JSON Config:", config);
 			if (!currentLocale || currentLocale === '') {
 				currentLocale = 'en-GB';
 			}
+			// currentLocale resolved
 				workingArr.forEach((d)=>{ 
                 
                     d.vendor_lifecycle?.sort((a, b) => a.order - b.order);
@@ -646,24 +730,89 @@ console.log("JSON Config:", config);
                     let current = null;
                     d.vendor_lifecycle?.forEach(item => {
                         let match = lifecycleStatusMap.get(item.statusId);
-						 
-						if(match){
-							item['statusColour']=match.colour
-							item['statusBgColour']=match.backgroundColor
-							const startDate = new Date(item.start_date);
-								if (startDate &lt;= today &amp;&amp; (!current || startDate > new Date(current.start_date))) {
-									current = item;
-								}
-                       	 	item['formattedStartDate']=formatDateforLocale(item.start_date,currentLocale)
-						}
+
+                        if (match) {
+                            item['statusColour'] = match.colour;
+                            item['statusBgColour'] = match.backgroundColor;
+
+                            // Guard invalid / missing dates (prevents RangeError: Invalid time value)
+                            var rawStart = item ? item.start_date : null;
+                            var startDate = (rawStart ? new Date(rawStart) : null);
+                            var isValidStart = !!(startDate &amp;&amp; !isNaN(startDate.getTime()));
+
+                            // Always set a safe formatted value (blank if invalid)
+                            item['formattedStartDate'] = essSafeFormatDateForLocale(rawStart, currentLocale);
+
+                            if (isValidStart) {
+                                var currentStart = (current &amp;&amp; current.start_date) ? new Date(current.start_date) : null;
+                                var isValidCurrent = !!(currentStart &amp;&amp; !isNaN(currentStart.getTime()));
+
+                                if (startDate &lt;= today &amp;&amp; (!current || !isValidCurrent || startDate > currentStart)) {
+                                    current = item;
+                                }
+                            }
+                        }
                     });
+
+					let thisInternalLifecycleModel = responses[2].all_lifecycles?.find(lc =&gt; {
+    					return lc.productId === d.id;
+					});
+
+					d.internal_lifecycle = [];
+
+					if (thisInternalLifecycleModel?.dates) {
+						d.internal_lifecycle = thisInternalLifecycleModel.dates
+							.filter(item =&gt; item.type === 'Lifecycle_Status')
+							.map(item =&gt; {
+
+								let match = internalLifecycleStatusMap.get(item.id);
+console.log("Mapping internal lifecycle status for item", item, "found match", match);
+								return {
+									statusId: item.id,
+									status: match.enumeration_value || match.name || 'Unknown Status',
+									start_date: item.dateOf,
+									order: match?.sequence || 999,
+									statusColour: match?.colour || '#000000',
+									statusBgColour: match?.backgroundColor || '#d3d3d3',
+									formattedStartDate: essSafeFormatDateForLocale(item.dateOf, currentLocale)
+								};
+							});
+					}
+
+					d.internal_lifecycle?.sort((a, b) => a.order - b.order);
+
+					let internalCurrent = null;
+					d.internal_lifecycle?.forEach(item => {
+						let match = internalLifecycleStatusMap.get(item.statusId);
+
+						if (match) {
+							item['statusColour'] = match.colour;
+							item['statusBgColour'] = match.backgroundColor;
+
+							var rawStart = item ? item.start_date : null;
+							var startDate = (rawStart ? new Date(rawStart) : null);
+							var isValidStart = !!(startDate &amp;&amp; !isNaN(startDate.getTime()));
+
+							item['formattedStartDate'] = essSafeFormatDateForLocale(rawStart, currentLocale);
+
+							if (isValidStart) {
+								var currentStart = (internalCurrent &amp;&amp; internalCurrent.start_date) ? new Date(internalCurrent.start_date) : null;
+								var isValidCurrent = !!(currentStart &amp;&amp; !isNaN(currentStart.getTime()));
+
+								if (startDate &lt;= today &amp;&amp; (!internalCurrent || !isValidCurrent || startDate > currentStart)) {
+									internalCurrent = item;
+								}
+							}
+						}
+					});
+
 
                     // Mark the current status
                     if (current) {
                         current['current'] = "Current";
                    
                         if(current.statusId !== d.vendor_product_lifecycle_status){
-                            d.vendor_product_lifecycle_status=current.statusId;
+                            d.vendor_product__status=current.statusId;
 
                         }
 
@@ -713,6 +862,7 @@ console.log("JSON Config:", config);
 		        });
 	 
 				// Initialize DataTable with dynamic columns
+				// Initialising DataTable with columns
 			 table = $("#dt_Capabilities").DataTable({
 				"paging": false,
 				"deferRender": true,
@@ -724,6 +874,7 @@ console.log("JSON Config:", config);
 				"destroy" : true,
 				"responsive": false,
 				"stateSave": true, 
+				"order": [[1, "asc"]],
 				"columns": colSettings,
 				"dom": 'Bfrtip',
 				"buttons": [ 
@@ -774,6 +925,7 @@ console.log("JSON Config:", config);
 					 
 					return data; 
 				},});
+				// DataTable initialised OK
        
 				table.columns().every(function () {
 		            var that = this;
@@ -807,14 +959,14 @@ console.log("JSON Config:", config);
   
  	 
 			}).catch(function (error) {
-				//display an error somewhere on the page
+				try {
+					$('#ess-data-gen-alert').show();
+				} catch (e) {}
             });
 
 var tblData;
 
             function renderCatalogueTableData(scopedData) {
-		 
-				  
 				var selectFragment = $("#select-template").html();
 				var selectTemplate = Handlebars.compile(selectFragment);
 
@@ -827,6 +979,9 @@ var tblData;
                 var vendorLifecycleFragment = $("#vendorLifecycle-template").html();
 				var vendorLifecycleTemplate = Handlebars.compile(vendorLifecycleFragment);
              
+				var internalLifecycleFragment = $("#internalLifecycle-template").html();
+				var internalLifecycleTemplate = Handlebars.compile(internalLifecycleFragment);
+
                 var compFragment = $("#compstandards-template").html();
 				var compTemplate = Handlebars.compile(compFragment);
 
@@ -855,13 +1010,15 @@ var tblData;
 					let ea_reference =  inscopeTechProd.techProd[i].ea_reference || " ";
 					stakeholderHTML=stakeholderTemplate(inscopeTechProd.techProd[i].stakeholders)
                     let vendorLifecycleTemplateHTML=vendorLifecycleTemplate(inscopeTechProd.techProd[i]);
+					let internalLifecycleTemplateHTML = internalLifecycleTemplate(inscopeTechProd.techProd[i]);
                     let stdHTML=compTemplate(inscopeTechProd.techProd[i])
 					let familyHTML=familyTemplate(inscopeTechProd.techProd[i].member_of_technology_product_families);
  
-					tblData.push({"select":selectHTML,"name":tppNameHTML,"desc":inscopeTechProd.techProd[i].description,"status":"","supplier":supplierHTML, "stakeholders":stakeholderHTML, "ea_reference":ea_reference,"standards":stdHTML,"lifecycle":vendorLifecycleTemplateHTML, "family":familyHTML, ...additionalData})
+					tblData.push({"select":selectHTML,"name":tppNameHTML,"desc":inscopeTechProd.techProd[i].description,"status":"","supplier":supplierHTML, "stakeholders":stakeholderHTML, "ea_reference":ea_reference,"standards":stdHTML,"internal_lifecycle":internalLifecycleTemplateHTML, "lifecycle":vendorLifecycleTemplateHTML, "family":familyHTML, ...additionalData})
                      
 		        }
 
+				// Drawing table
 				table.clear().rows.add(tblData).draw();
 		    }
 
@@ -891,7 +1048,7 @@ var tblData;
 					"icon": 'fa-tasks'
 				}
 				let scopedTech = essScopeResources(scopedTechProdList, [techOrgScopingDef, visibilityDef].concat(dynamicFilterDefs), typeInfo);
- 
+				// essScopeResources completed
 				let showtechProd = scopedTech.resources; 
 				let viewArray = {}; 
 				viewArray['type'] = "<xsl:value-of select="$repYN"/>";

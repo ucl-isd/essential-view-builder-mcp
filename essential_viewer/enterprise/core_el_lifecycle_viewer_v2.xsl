@@ -1400,7 +1400,7 @@
 				capOptions.sort((a, b) => (a.name > b.name) ? 1 : -1)
 		 //console.log('lt', lifecycleTypes)
 				$('#lifecycleOptions').html(lifeListTemplate(lifecycleTypes))
-		 		if(lifecycleTypes.some(option => option.id === "vendor_Lifecycle_status")){
+		 		if (lifecycleTypes.some(option => option.id === "Vendor_Lifecycle_Status")) {
 					$('#lifecycleOptions').val('Vendor_Lifecycle_Status').change()
 				}
 				$('.vls-vendor').append(listTemplate(suppliers))

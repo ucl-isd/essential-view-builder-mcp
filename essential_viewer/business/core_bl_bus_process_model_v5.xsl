@@ -40,8 +40,8 @@
 	<xsl:variable name="processFlowRelations" select="/node()/simple_instance[own_slot_value[slot_reference = 'contained_in_process_flow']/value = $overallProcessFlow/name]"/>
 
 	<!-- get the list of process owners in scope -->
-	<xsl:variable name="processOwnerRole" select="/node()/simple_instance[(type = 'Group_Business_Role') and (own_slot_value[slot_reference = 'name']/value = 'Process Owner')]"/>
-	<xsl:variable name="processOwnerActor2Roles" select="/node()/simple_instance[(name = $business_processes/own_slot_value[slot_reference = 'stakeholders']/value) and (own_slot_value[slot_reference = 'act_to_role_to_role']/value = $processOwnerRole/name)]"/>
+	<xsl:variable name="processOwnerRole" select="/node()/simple_instance[(type = 'Group_Business_Role' or type = 'Business_Role' or type = 'Individual_Business_Role') and (own_slot_value[slot_reference = 'name']/value = 'Process Owner')]"/>
+	<xsl:variable name="processOwnerActor2Roles" select="/node()/simple_instance[(name = $modelSubject/own_slot_value[slot_reference = 'stakeholders']/value) and (own_slot_value[slot_reference = 'act_to_role_to_role']/value = $processOwnerRole/name)]"/>
 	<xsl:variable name="processOwners" select="/node()/simple_instance[name = $processOwnerActor2Roles/own_slot_value[slot_reference = 'act_to_role_from_actor']/value]"/>
 
 	<!-- get theinput and output services for the procedure -->

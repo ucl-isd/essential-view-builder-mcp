@@ -41,9 +41,11 @@ This document provides instructions for AI agents on how to build custom Views f
     <xsl:include href="../common/core_api_fetcher.xsl"/>
     <xsl:include href="../common/core_handlebars_functions.xsl"/>
     
-    <!-- CRITICAL: DO NOT manually include core_utilities.xsl. 
-         It is already included by the core header/footer/js chain. 
-         Adding it here will cause "duplicate declaration" fatal errors. -->
+    <!-- CRITICAL: DO NOT manually include core_utilities.xsl OR viewer_security.xsl. 
+         They are already included by the core header/footer/js chain. 
+         Adding them here will cause "duplicate declaration" or "included more than once" errors. -->
+    
+    <!-- FORBIDDEN: NEVER include core_modal_reports.xsl or call RenderModalReportContent -->
     
     <xsl:output method="html" omit-xml-declaration="yes" indent="yes"/>
     <xsl:param name="param1"/>

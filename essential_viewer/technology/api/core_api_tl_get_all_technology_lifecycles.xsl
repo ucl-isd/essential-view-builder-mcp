@@ -178,6 +178,7 @@
     <xsl:variable name="thisISODate" select="$this/own_slot_value[slot_reference='lcm_status_start_date_iso_8601']/value"/>   
     {"id":"<xsl:value-of select="eas:getSafeJSString($thisLifecycle/name)"/>",
     "name":"<xsl:value-of select="$thisLifecycle/own_slot_value[slot_reference='name']/value"/>",
+	"enumeration_value":"<xsl:value-of select="eas:getSafeJSString($thisLifecycle/own_slot_value[slot_reference='enumeration_value']/value)"/>",
     "dateOf":"<xsl:value-of select="$thisISODate"/>",
     "thisid":"<xsl:value-of select="eas:getSafeJSString($this/name)"/>",
     "type":"<xsl:value-of select="$thisLifecycle/type"/>"}
@@ -207,6 +208,7 @@
 		<xsl:variable name="thisLifecycle" select="key('lifecycles', current()/own_slot_value[slot_reference='lcm_lifecycle_status']/value)"/>
 		{"id":"<xsl:value-of select="eas:getSafeJSString($thisLifecycle/name)"/>",
 		"name":"<xsl:value-of select="$thisLifecycle/own_slot_value[slot_reference='name']/value"/>",
+		"enumeration_value":"<xsl:value-of select="eas:getSafeJSString($thisLifecycle/own_slot_value[slot_reference='enumeration_value']/value)"/>",
 		"dateOf":"<xsl:value-of select="current()/own_slot_value[slot_reference='lcm_status_start_date_iso_8601']/value"/>",
 		"thisid":"<xsl:value-of select="eas:getSafeJSString(current()/name)"/>",
 		"seq":"<xsl:value-of select="$thisLifecycle/own_slot_value[slot_reference='enumeration_sequence_number']/value"/>",

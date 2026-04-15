@@ -24,6 +24,11 @@ $.getJSON(apiApps, function(data) { ... });
 
 The **only** correct pattern is `fetchAndRenderData(apiList)` — see the golden pattern below.
 
+### ⛔ FORBIDDEN — DEPRECATED COMPONENTS (Never Use)
+
+*   **`core_modal_reports.xsl`**: This file is deprecated. Do NOT include it.
+*   **`RenderModalReportContent`**: This template is forbidden. Do NOT call it.
+
 ---
 
 ## THE GOLDEN PATTERN (Copy This!)
@@ -169,7 +174,10 @@ if (window.appMartAPI) { }              // No window access!
 <xsl:include href="../common/core_api_fetcher.xsl"/>
 <xsl:include href="../common/core_handlebars_functions.xsl"/>
 ```
-**WARNING**: Omitting ANY of these includes will cause the view to fail silently or throw XSLT errors. Every view needs ALL six includes.
+**WARNING**: Omitting ANY of these includes will cause the view to fail silently or throw XSLT errors. Every view needs ALL six core includes.
+
+### Transitive Security Inclusion
+`viewer_security.xsl` is already included via `core_header.xsl`. **DO NOT** include it manually.
 
 ### 8. Template Mapping Table
 Map the included file to its provided template name for `<xsl:call-template/>`:

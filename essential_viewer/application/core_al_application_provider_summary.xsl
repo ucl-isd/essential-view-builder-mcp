@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet version="2.0" xpath-default-namespace="http://protege.stanford.edu/xml" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xalan="http://xml.apache.org/xslt" xmlns:pro="http://protege.stanford.edu/xml" xmlns:eas="http://www.enterprise-architecture.org/essential" xmlns:functx="http://www.functx.com" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ess="http://www.enterprise-architecture.org/essential/errorview">
 	<xsl:import href="../common/core_strategic_plans.xsl"/>
-	<xsl:include href="../common/core_doctype.xsl"/>
-	<xsl:include href="../common/core_common_head_content.xsl"/>
-	<xsl:include href="../common/core_header.xsl"/>
-	<xsl:include href="../common/core_footer.xsl"/>
+	<xsl:import href="../common/core_doctype.xsl"/>
+	<xsl:import href="../common/core_common_head_content.xsl"/>
+	<xsl:import href="../common/core_header.xsl"/>
+	<xsl:import href="../common/core_footer.xsl"/>
 	<xsl:include href="../common/core_arch_image.xsl"/>
 	<xsl:include href="../common/core_handlebars_functions.xsl"/>
 	<xsl:include href="../common/core_external_repos_ref.xsl"/>
@@ -164,6 +164,7 @@
 				<script src="js/dagre/dagre.min.js"></script>
 				<script src="js/dagre/dagre-d3.min.js"></script>
 				<script src="js/FileSaver.min.js"></script>
+				<script src="js/docx/index.umd.js"></script>
 				<script src="js/jszip/jszip.min.js"></script>
 				<script src="js/jointjs/lodash.min.js"></script>
 				<script src="js/jointjs/backbone-min.js"></script>
@@ -769,6 +770,17 @@
 					    right: 15px;
 					    top: 15px;
 					}
+					.word-export-tab-list{
+						max-height: 360px;
+						overflow: auto;
+						border: 1px solid #e5e5e5;
+						border-radius: 4px;
+						padding: 10px 12px;
+					}
+					.word-export-tab-list .checkbox{
+						margin-top: 8px;
+						margin-bottom: 8px;
+					}
 					.lb-md{
 					    font-size: 16px;
 					}
@@ -1352,6 +1364,24 @@
 								<div class="clearfix"/>
 								<div class="modal-footer">
 									<button type="button" class="btn btn-default" data-dismiss="modal">eas:i18n('Close')"/></button>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div id="wordExportTabModal" class="modal fade" role="dialog" aria-labelledby="wordExportTabModalLabel">
+						<div class="modal-dialog">
+							<div class="modal-content">
+								<div class="modal-header">
+									<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&#215;</span></button>
+									<h4 class="modal-title" id="wordExportTabModalLabel">Select tabs to export</h4>
+								</div>
+								<div class="modal-body">
+									<p>Select one or more summary tabs. The export captures each selected tab as currently rendered in the view.</p>
+									<div id="wordExportTabList" class="word-export-tab-list"></div>
+								</div>
+								<div class="modal-footer">
+									<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+									<button type="button" class="btn btn-primary" id="confirmWordExport">Export Selected Tabs</button>
 								</div>
 							</div>
 						</div>
@@ -2336,7 +2366,7 @@ function hookObserver(){
 														  <div class="row">
 															<div class="col-xs-6">
 															  <p class="text-muted"><xsl:value-of select="eas:i18n('Rating')"/>:<xsl:text> </xsl:text>
-															  <span class="lead secBox"><xsl:attribute name="style">color:{{this.security.sec_profile_availability_rating_style.colour}};background-color:{{this.security.sec_profile_availability_rating_style.backgroundColour}};border-color:{{this.security.sec_profile_availability_rating_style.backgroundColour}}E6</xsl:attribute><xsl:value-of select="eas:i18n('Rating')"/><xsl:text> </xsl:text>{{this.security.sec_profile_availability_rating}}
+															  <span class="lead secBox"><xsl:attribute name="style">color:{{this.security.sec_profile_availability_rating_style.colour}};background-color:{{this.security.sec_profile_availability_rating_style.backgroundColour}};border-color:{{this.security.sec_profile_availability_rating_style.backgroundColour}}E6</xsl:attribute>{{this.security.sec_profile_availability_rating}}
 															</span>
 															</p>
 															</div>
@@ -2482,7 +2512,7 @@ function hookObserver(){
 											  <div class="panel panel-default">
 												<div class="panel-heading"><h4 class="panel-title"><xsl:value-of select="eas:i18n('Security Summary')"/></h4></div>
 												<div class="panel-body">
-												  {{#with (calculateSecurityRating this.security.sec_profile_confidentiality_rating sec_profile_integrity_rating this.security.sec_profile_availability_rating)}}
+												  {{#with (calculateSecurityRating this.security.sec_profile_confidentiality_rating this.security.sec_profile_integrity_rating this.security.sec_profile_availability_rating)}}
 													<p style="font-size:1.3em">
 													  <span><xsl:attribute name="class">glyphicon glyphicon-record text-{{color}}</xsl:attribute></span><xsl:text> </xsl:text>
 													  <strong><xsl:value-of select="eas:i18n('Overall Security Status')"/>:</strong>
@@ -3012,36 +3042,6 @@ function hookObserver(){
 								  </div>
 								</div>
 						  
-								<!--alternate service container-->
-								<div class="alternate-service-container service-box">
-								  <div class="header">
-									<i class="fa-solid fa-display" style="padding-right: 0.5rem"></i>
-									<p class="app-header"><xsl:value-of select="eas:i18n('Alternative Application Services')"/></p>
-								  </div>
-								  <div class="sub-text">
-									<xsl:value-of select="eas:i18n('Application Services this application has which are also provided by other applications')"/>
-								  </div>
-						  
-								  <div class="service-card-container alternate">
-									{{#each this.allServices}}
-									<div class="card">
-									  <div class="c-header">
-										<div class="header-title-box" style="color:white !important">{{#essRenderInstanceLinkOnly this.linkDetails 'Application_Service'}}{{/essRenderInstanceLinkOnly}}</div>
-									  </div>
-									  <div class="c-body">
-										<ul class="fa-ul">
-											{{#each this.otherAppsProviding}}
-											{{#ifEquals this.name ../../name}}
-											{{else}}
-												<li><i class="fa fa-angle-right fa-li"></i>{{#essRenderInstanceLinkOnly this 'Application_Provider'}}{{/essRenderInstanceLinkOnly}}</li>
-											{{/ifEquals}}	
-											{{/each}}
-										</ul>
-									  </div>
-									</div>
-									{{/each}}
-								  </div>
-								</div>
 							  </div>
 							
 							</div> 
@@ -3086,6 +3086,7 @@ function hookObserver(){
 													<div class="bottom-5">
 														<div class="right-5">
 															<xsl:attribute name="class">{{#getSQVBox this.score}}{{/getSQVBox}}</xsl:attribute>
+															<xsl:attribute name="style">background-color: {{this.elementBackgroundColour}}; color: {{this.elementColour}};</xsl:attribute>
 															<span>{{this.score}}</span>
 														</div>	
 														<span>{{this.serviceName}}</span>
@@ -5297,11 +5298,48 @@ const collatedAppsMap = new Map(collatedApps.map(app => [app.id, app]));
 					 
 					essInitViewScoping(redrawPage, ['Group_Actor', 'Geographic_Region', 'SYS_CONTENT_APPROVAL_STATUS'], "",true);
 
-	});
+});
 
 
 
 });
+
+function hasSecurityData(profile) {
+	if (!profile || typeof profile !== 'object') {
+		return false;
+	}
+
+	const stringFields = [
+		'sec_profile_confidentiality_rating',
+		'sec_profile_confidentiality_risk_impact',
+		'sec_profile_integrity_rating',
+		'sec_profile_integrity_risk_impact',
+		'sec_profile_availability_rating',
+		'sec_profile_availability_risk_impact',
+		'sec_profile_rbac_usage',
+		'sec_profile_mfa_usage',
+		'sec_profile_sso_usage',
+		'sec_profile_user_access_review_frequency',
+		'sec_profile_is_data_encrypted_at_rest',
+		'sec_profile_is_internal_facing',
+		'sec_profile_is_external_facing'
+	];
+
+	const hasNonEmptyString = stringFields.some(field => {
+		const value = profile[field];
+		return typeof value === 'string' &amp;&amp; value.trim().length > 0;
+	});
+
+	if (hasNonEmptyString) {
+		return true;
+	}
+
+	if (Array.isArray(profile.authentication_methods) &amp;&amp; profile.authentication_methods.length > 0) {
+		return true;
+	}
+
+	return false;
+}
 
 function mapSecurityProfilesToApps(focusApp, securityProfile) {
 	 
@@ -5313,9 +5351,8 @@ function mapSecurityProfilesToApps(focusApp, securityProfile) {
 	}
   });
   // Step 2: Append matching security profile to each application
-  
 	const matchedSecurity = securityMap.get(focusApp.id);
-	if (matchedSecurity) {
+	if (matchedSecurity &amp;&amp; hasSecurityData(matchedSecurity)) {
 		focusApp.security = matchedSecurity;
 	}
 }
@@ -5843,7 +5880,7 @@ $('#subjectSelection').select2({
 
 	const formatDisplayDate = (date) => {
 		try {
-			return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' }).format(date);
+			return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(date);
 		} catch (error) {
 			return date.toISOString().slice(0, 10);
 		}
@@ -7004,13 +7041,2057 @@ $('#subjectSelection').select2({
 							
 			</xsl:if>
 	<!-- set word -->
-	 $('#getWord').off().on('click',function(){
-	  <xsl:call-template name="RenderOfficetUtilityFunctions"/>
-	 
-	 getWord(focusApp)
-	})
-	
-	
+	 <xsl:call-template name="RenderOfficetUtilityFunctions"/>
+
+	function waitForWordExport(ms){
+		return new Promise(function(resolve){
+			setTimeout(resolve, ms);
+		});
+	}
+
+	function escapeWordExportHtml(value){
+		return String(value || '')
+			.replace(/&amp;/g, '&amp;amp;')
+			.replace(/&lt;/g, '&amp;lt;')
+			.replace(/&gt;/g, '&amp;gt;')
+			.replace(/"/g, '&amp;quot;')
+			.replace(/'/g, '&amp;#39;');
+	}
+
+	function getSummaryTabMetadata(){
+		const links = document.querySelectorAll('#summary-content .tabs-left a[data-toggle="tab"]');
+		const tabs = [];
+		links.forEach((link) => {
+			const href = link.getAttribute('href') || '';
+			if (!href || href.charAt(0) !== '#') {
+				return;
+			}
+			const tabId = href.slice(1);
+			const tabPane = document.getElementById(tabId);
+			if (!tabPane) {
+				return;
+			}
+			const label = (link.textContent || '').replace(/\s+/g, ' ').trim() || tabId;
+			tabs.push({
+				id: tabId,
+				label: label,
+				active: link.parentElement &amp;&amp; link.parentElement.classList.contains('active')
+			});
+		});
+		return tabs;
+	}
+
+	function populateWordExportTabPicker(){
+		const listContainer = $('#wordExportTabList');
+		const tabs = getSummaryTabMetadata();
+		listContainer.empty();
+		tabs.forEach((tab) => {
+			const safeId = escapeWordExportHtml(tab.id);
+			const safeLabel = escapeWordExportHtml(tab.label);
+			const checkboxHtml = '<div class="checkbox">' +
+				'<label>' +
+				'<input type="checkbox" class="word-export-tab-checkbox" value="' + safeId + '" checked="checked"/> ' +
+				safeLabel +
+				'</label>' +
+				'</div>';
+			listContainer.append(checkboxHtml);
+		});
+		return tabs;
+	}
+
+	function replaceCanvasWithImageElements(sourceRoot, cloneRoot){
+		const sourceCanvases = sourceRoot.querySelectorAll('canvas');
+		const clonedCanvases = cloneRoot.querySelectorAll('canvas');
+		sourceCanvases.forEach((sourceCanvas, index) => {
+			const cloneCanvas = clonedCanvases[index];
+			if (!cloneCanvas || !cloneCanvas.parentNode) {
+				return;
+			}
+			try {
+				const dataUrl = sourceCanvas.toDataURL('image/png');
+				if (!dataUrl) {
+					return;
+				}
+				const image = document.createElement('img');
+				image.src = dataUrl;
+				image.alt = sourceCanvas.id || 'chart';
+				image.style.maxWidth = '100%';
+				image.style.width = sourceCanvas.clientWidth ? sourceCanvas.clientWidth + 'px' : '100%';
+				if (sourceCanvas.clientHeight) {
+					image.style.height = sourceCanvas.clientHeight + 'px';
+				}
+				cloneCanvas.parentNode.replaceChild(image, cloneCanvas);
+			} catch (e) {
+				console.warn('Unable to export canvas image', e);
+			}
+		});
+	}
+
+	function svgToPngDataUrl(svgElement){
+		return new Promise((resolve) => {
+			try {
+				const svgString = new XMLSerializer().serializeToString(svgElement);
+				const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+				const url = URL.createObjectURL(svgBlob);
+				const img = new Image();
+				img.onload = function() {
+					const canvas = document.createElement('canvas');
+					const bbox = (typeof svgElement.getBBox === 'function') ? svgElement.getBBox() : null;
+					const width = svgElement.clientWidth || svgElement.getAttribute('width') || (bbox &amp;&amp; bbox.width) || img.width || 1200;
+					const height = svgElement.clientHeight || svgElement.getAttribute('height') || (bbox &amp;&amp; bbox.height) || img.height || 500;
+					canvas.width = parseInt(width, 10);
+					canvas.height = parseInt(height, 10);
+					const ctx = canvas.getContext('2d');
+					ctx.fillStyle = '#ffffff';
+					ctx.fillRect(0, 0, canvas.width, canvas.height);
+					ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+					URL.revokeObjectURL(url);
+					resolve(canvas.toDataURL('image/png'));
+				};
+				img.onerror = function() {
+					URL.revokeObjectURL(url);
+					resolve(null);
+				};
+				img.src = url;
+			} catch (e) {
+				resolve(null);
+			}
+		});
+	}
+
+	async function replaceSvgWithImageElements(sourceRoot, cloneRoot){
+		const sourceSvgs = sourceRoot.querySelectorAll('svg');
+		const clonedSvgs = cloneRoot.querySelectorAll('svg');
+		for (let i = 0; i &lt; sourceSvgs.length; i += 1) {
+			const sourceSvg = sourceSvgs[i];
+			const cloneSvg = clonedSvgs[i];
+			if (!cloneSvg || !cloneSvg.parentNode) {
+				continue;
+			}
+			const dataUrl = await svgToPngDataUrl(sourceSvg);
+			if (!dataUrl) {
+				continue;
+			}
+			const image = document.createElement('img');
+			image.src = dataUrl;
+			image.alt = sourceSvg.id || 'diagram';
+			image.style.maxWidth = '100%';
+			image.style.width = sourceSvg.clientWidth ? sourceSvg.clientWidth + 'px' : '100%';
+			if (sourceSvg.clientHeight) {
+				image.style.height = sourceSvg.clientHeight + 'px';
+			}
+			cloneSvg.parentNode.replaceChild(image, cloneSvg);
+		}
+	}
+
+	function getWordExportCss(){
+		const exportStyles = '\n.word-export-section{page-break-after:always;margin:0 0 24px 0;}' +
+			'\n.word-export-section:last-child{page-break-after:auto;}' +
+			'\n.word-export-title{margin:0 0 12px 0;color:#222;font-size:22px;font-weight:700;font-family:"Century Gothic",CenturyGothic,AppleGothic,Arial,sans-serif;}' +
+			'\n.word-export-content{font-family:"Century Gothic",CenturyGothic,AppleGothic,Arial,sans-serif;font-size:11pt;line-height:1.35;color:#222;}' +
+			'\n.word-export-content h2{margin:16px 0 8px 0;font-size:16pt;font-weight:700;}' +
+			'\n.word-export-content h3{margin:14px 0 8px 0;font-size:13pt;font-weight:700;}' +
+			'\n.word-export-content h4{margin:12px 0 6px 0;font-size:11.5pt;font-weight:700;}' +
+			'\n.word-export-content p{margin:0 0 8px 0;}' +
+			'\n.word-export-content .text-primary{color:#1f3b56;font-weight:700;}' +
+			'\n.word-export-content .impact,.word-export-content .large{font-weight:700;}' +
+			'\n.word-export-content .label,.word-export-content .badge{display:inline-block;padding:2px 6px;margin:0 4px 4px 0;border:1px solid #b9c4d1;border-radius:3px;background:#f4f7fb;color:#1f2a37;font-size:10pt;}' +
+			'\n.word-export-content ul{margin:0 0 10px 18px;padding:0;}' +
+			'\n.word-export-content table{border-collapse:collapse;width:100%;margin:8px 0 12px 0;}' +
+			'\n.word-export-content th,.word-export-content td{border:1px solid #cfd6de;padding:6px 8px;text-align:left;vertical-align:top;}' +
+			'\n.word-export-content th{background:#2F4A63;color:#fff;font-weight:700;}' +
+			'\n.word-export-content .panel,.word-export-content .card,.word-export-content .well{border:1px solid #d8dee6;padding:8px 10px;margin:0 0 10px 0;}' +
+			'\n.word-export-content .row,.word-export-content [class*="col-"]{display:block;width:100%;}' +
+			'\n.word-export-content img{max-width:100%;height:auto;}' +
+			'\n.word-export-content img.word-export-chart{width:48%;height:auto;}';
+		return exportStyles;
+	}
+
+	function getWordExportFileName(extension){
+		const appName = (focusApp &amp;&amp; focusApp.name) ? focusApp.name : 'application_summary';
+		const ext = extension || 'docx';
+		return appName.replace(/[^a-z0-9_-]+/gi, '_') + '_summary_tabs.' + ext;
+	}
+
+	function normalizeWordExportText(value){
+		return String(value || '').replace(/\s+/g, ' ').trim();
+	}
+
+	function toDisplayValue(value){
+		if (value === null || value === undefined) {
+			return '';
+		}
+		if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+			return normalizeWordExportText(value);
+		}
+		if (Array.isArray(value)) {
+			return normalizeWordExportText(value.map((v) => toDisplayValue(v)).filter(Boolean).join(', '));
+		}
+		if (typeof value === 'object') {
+			const preferredKeys = ['name', 'label', 'status', 'serviceName', 'prodname', 'compname', 'id'];
+			for (const key of preferredKeys) {
+				if (value[key] !== undefined &amp;&amp; value[key] !== null) {
+					const text = toDisplayValue(value[key]);
+					if (text) {
+						return text;
+					}
+				}
+			}
+			return '';
+		}
+		return '';
+	}
+
+	function docxBodyParagraph(api, text){
+		return new api.Paragraph({
+			children: [new api.TextRun({ text: text, font: 'Century Gothic' })],
+			spacing: {
+				after: 140,
+				line: 300
+			}
+		});
+	}
+
+	function dataUrlToUint8Array(dataUrl){
+		if (!dataUrl || dataUrl.indexOf('data:') !== 0) {
+			return null;
+		}
+		const commaIndex = dataUrl.indexOf(',');
+		if (commaIndex === -1) {
+			return null;
+		}
+		const base64 = dataUrl.substring(commaIndex + 1);
+		const binary = atob(base64);
+		const bytes = new Uint8Array(binary.length);
+		for (let i = 0; i &lt; binary.length; i += 1) {
+			bytes[i] = binary.charCodeAt(i);
+		}
+		return bytes;
+	}
+
+	function getUniqueList(values){
+		const seen = new Set();
+		return (values || []).filter((value) => {
+			const text = normalizeWordExportText(value);
+			if (!text) {
+				return false;
+			}
+			const key = text.toLowerCase();
+			if (seen.has(key)) {
+				return false;
+			}
+			seen.add(key);
+			return true;
+		});
+	}
+
+	function getUniqueRows(rows){
+		const seen = new Set();
+		return (rows || []).filter((row) => {
+			const sig = JSON.stringify((row || []).map((v) => normalizeWordExportText(toDisplayValue(v)).toLowerCase()));
+			if (!sig || seen.has(sig)) {
+				return false;
+			}
+			seen.add(sig);
+			return true;
+		});
+	}
+
+	function extractTableCellText(sourceCell){
+		const listItems = getUniqueList(Array.from(sourceCell.querySelectorAll('li')).map((li) => li.textContent));
+		if (listItems.length) {
+			return listItems.join(', ');
+		}
+		const tags = getUniqueList(Array.from(sourceCell.querySelectorAll('.tagActor, .label, .family-tag')).map((el) => el.textContent));
+		if (tags.length > 1) {
+			return tags.join(', ');
+		}
+		return normalizeWordExportText(sourceCell.textContent);
+	}
+
+	function htmlTableToDocxTable(tableEl, api){
+		if (!tableEl || !tableEl.rows || !tableEl.rows.length) {
+			return null;
+		}
+		const borderColor = 'D9DDE3';
+		const borderDef = {
+			style: api.BorderStyle.SINGLE,
+			size: 2,
+			color: borderColor
+		};
+		const sourceRows = [];
+		if (tableEl.tHead &amp;&amp; tableEl.tHead.rows) {
+			Array.from(tableEl.tHead.rows).forEach((r) => sourceRows.push(r));
+		}
+		if (tableEl.tBodies &amp;&amp; tableEl.tBodies.length) {
+			Array.from(tableEl.tBodies).forEach((tbody) => {
+				Array.from(tbody.rows).forEach((r) => sourceRows.push(r));
+			});
+		}
+		if (!sourceRows.length) {
+			Array.from(tableEl.rows).forEach((r) => sourceRows.push(r));
+		}
+		const rows = [];
+		const rowCount = Math.min(sourceRows.length, 200);
+		for (let r = 0; r &lt; rowCount; r += 1) {
+			const sourceRow = sourceRows[r];
+			const cells = [];
+			for (let c = 0; c &lt; sourceRow.cells.length; c += 1) {
+				const sourceCell = sourceRow.cells[c];
+				const cellText = extractTableCellText(sourceCell);
+				const run = new api.TextRun({
+					text: cellText || ' ',
+					bold: r === 0,
+					color: r === 0 ? 'FFFFFF' : '222222',
+					font: 'Century Gothic'
+				});
+				cells.push(new api.TableCell({
+					shading: r === 0 ? {
+						type: api.ShadingType.CLEAR,
+						fill: '2F4A63',
+						color: 'auto'
+					} : undefined,
+					children: [new api.Paragraph({
+						children: [run],
+						spacing: { after: 60 }
+					})]
+				}));
+			}
+			if (cells.length) {
+				rows.push(new api.TableRow({ children: cells }));
+			}
+		}
+		if (!rows.length) {
+			return null;
+		}
+		return new api.Table({
+			rows: rows,
+			borders: {
+				top: borderDef,
+				bottom: borderDef,
+				left: borderDef,
+				right: borderDef,
+				insideHorizontal: borderDef,
+				insideVertical: borderDef
+			},
+			width: {
+				size: 100,
+				type: api.WidthType.PERCENTAGE
+			},
+			layout: api.TableLayoutType.FIXED
+		});
+	}
+
+	function buildDocxTableFromRows(api, headers, rows){
+		if (!rows || !rows.length) {
+			return null;
+		}
+		const borderColor = 'D9DDE3';
+		const borderDef = {
+			style: api.BorderStyle.SINGLE,
+			size: 2,
+			color: borderColor
+		};
+		const allRows = [];
+		if (headers &amp;&amp; headers.length) {
+			allRows.push(new api.TableRow({
+				children: headers.map((header) => new api.TableCell({
+					shading: {
+						type: api.ShadingType.CLEAR,
+						fill: '2F4A63',
+						color: 'auto'
+					},
+					children: [new api.Paragraph({
+						children: [new api.TextRun({ text: header, bold: true, color: 'FFFFFF', font: 'Century Gothic' })],
+						spacing: { after: 60 }
+					})]
+				}))
+			}));
+		}
+		rows.forEach((row) => {
+			const cells = row.map((cell) => toDisplayValue(cell));
+			if (!cells.some((c) => c.length > 0)) {
+				return;
+			}
+			allRows.push(new api.TableRow({
+				children: cells.map((cell) => new api.TableCell({
+					children: [new api.Paragraph({
+						children: [new api.TextRun({ text: normalizeWordExportText(cell) || ' ', color: '1F2937', font: 'Century Gothic' })],
+						spacing: { after: 60 }
+					})]
+				}))
+			}));
+		});
+		if (allRows.length === (headers &amp;&amp; headers.length ? 1 : 0)) {
+			return null;
+		}
+		return new api.Table({
+			rows: allRows,
+			borders: {
+				top: borderDef,
+				bottom: borderDef,
+				left: borderDef,
+				right: borderDef,
+				insideHorizontal: borderDef,
+				insideVertical: borderDef
+			},
+			width: {
+				size: 100,
+				type: api.WidthType.PERCENTAGE
+			},
+			layout: api.TableLayoutType.FIXED
+		});
+	}
+
+	function dateForDoc(value){
+		if (!value) {
+			return '';
+		}
+		const dt = new Date(value);
+		if (Number.isNaN(dt.getTime())) {
+			return String(value);
+		}
+		return dt.toLocaleDateString();
+	}
+
+	function resolveDataRepLabel(rawValue){
+		const raw = toDisplayValue(rawValue);
+		if (!raw) {
+			return '';
+		}
+		if (typeof DRList !== 'undefined' &amp;&amp; Array.isArray(DRList)) {
+			const match = DRList.find((dr) => String(dr.id) === String(raw) || String(dr.name) === String(raw));
+			if (match &amp;&amp; match.name) {
+				return toDisplayValue(match.name);
+			}
+		}
+		return raw.replace(/_/g, ' ');
+	}
+
+	function formatCrudForDoc(item){
+		const c = normalizeCrudValue(item.create);
+		const r = normalizeCrudValue(item.read);
+		const u = normalizeCrudValue(item.update);
+		const d = normalizeCrudValue(item.delete);
+		return 'Create: ' + c + ', Read: ' + r + ', Update: ' + u + ', Delete: ' + d;
+	}
+
+	function normalizeCrudValue(raw){
+		const text = toDisplayValue(raw).toLowerCase();
+		if (!text) {
+			return 'Unknown';
+		}
+		if (text === 'true' || text === 'yes' || text === 'y' || text === '1' || text.indexOf('check') > -1 || text.indexOf('tick') > -1) {
+			return 'Yes';
+		}
+		if (text === '?' || text === 'unknown' || text === 'dont know' || text === "don't know" || text.indexOf('question') > -1) {
+			return "Don't know";
+		}
+		if (text === 'false' || text === 'no' || text === 'n' || text === '0' || text === 'x' || text === '✗' || text === '✕' || text.indexOf('times') > -1 || text.indexOf('cross') > -1) {
+			return 'No';
+		}
+		return text.charAt(0).toUpperCase() + text.slice(1);
+	}
+
+	function resolveFilteredValue(slotName, rawValue){
+		const raw = toDisplayValue(rawValue);
+		if (!raw) {
+			return '';
+		}
+		if (typeof appList !== 'undefined' &amp;&amp; appList &amp;&amp; Array.isArray(appList.filters)) {
+			const filter = appList.filters.find((f) => f.slotName === slotName);
+			if (filter &amp;&amp; Array.isArray(filter.values)) {
+				const match = filter.values.find((v) => String(v.id) === String(raw) || String(v.name) === String(raw));
+				if (match &amp;&amp; match.name) {
+					return toDisplayValue(match.name);
+				}
+			}
+		}
+		return raw;
+	}
+
+	function resolveFilteredValues(slotName, rawValue){
+		if (Array.isArray(rawValue)) {
+			return getUniqueList(rawValue.map((v) => resolveFilteredValue(slotName, v))).join(', ');
+		}
+		return resolveFilteredValue(slotName, rawValue);
+	}
+
+	function extractDetailsBlocksFromData(api, app){
+		const blocks = [];
+		const keyRows = [];
+		const businessCriticality = resolveFilteredValues('ap_business_criticality', app.ap_business_criticality);
+		const lifecycleStatus = resolveFilteredValues('lifecycle_status_application_provider', app.lifecycle_status_application_provider);
+		const codebaseStatus = resolveFilteredValues('ap_codebase_status', app.ap_codebase_status);
+		const deliveryModel = resolveFilteredValues('ap_delivery_model', app.ap_delivery_model);
+		const disposition = resolveFilteredValues('ap_disposition_lifecycle_status', app.ap_disposition_lifecycle_status);
+		const purpose = resolveFilteredValues('application_provider_purpose', app.application_provider_purpose);
+		const supplier = toDisplayValue(app.supplier);
+		const family = getUniqueList((app.family || []).map((f) => toDisplayValue(f.name || f))).join(', ');
+
+		if (businessCriticality) { keyRows.push(['Business Criticality', businessCriticality]); }
+		if (lifecycleStatus) { keyRows.push(['Lifecycle Status', lifecycleStatus]); }
+		if (codebaseStatus) { keyRows.push(['Codebase', codebaseStatus]); }
+		if (deliveryModel) { keyRows.push(['Delivery Model', deliveryModel]); }
+		if (disposition) { keyRows.push(['Disposition', disposition]); }
+		if (purpose) { keyRows.push(['Purpose', purpose]); }
+		if (supplier) { keyRows.push(['Application Supplier', supplier]); }
+		if (family) { keyRows.push(['Application Family', family]); }
+
+		if (keyRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Key Information', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const keyTable = buildDocxTableFromRows(api, ['Field', 'Value'], keyRows);
+			if (keyTable) {
+				blocks.push(keyTable);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+
+		const regs = [];
+		(app.classifications || []).forEach((c) => {
+			(c.regulation || []).forEach((r) => {
+				regs.push(toDisplayValue(r.name || r));
+			});
+		});
+		(app.regulations || []).forEach((r) => {
+			regs.push(toDisplayValue(r.name || r));
+		});
+		const uniqueRegs = getUniqueList(regs);
+		if (uniqueRegs.length) {
+			blocks.push(new api.Paragraph({ text: 'Relevant Regulations', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			blocks.push(docxBodyParagraph(api, uniqueRegs.join(', ')));
+		}
+
+		return blocks;
+	}
+
+	function extractClassificationsBlocksFromData(api, app){
+		const blocks = [];
+		const rto = resolveFilteredValues('ea_recovery_time_objective', app.ea_recovery_time_objective);
+		const rpo = resolveFilteredValues('ea_recovery_point_objective', app.ea_recovery_point_objective);
+		if (rto || rpo) {
+			const text = 'RTO: ' + (rto || 'Not set') + ', RPO: ' + (rpo || 'Not set');
+			blocks.push(new api.Paragraph({ text: text, spacing: { after: 160 } }));
+		}
+
+		const regulationRows = [];
+		if (app.classificationsByReg &amp;&amp; typeof app.classificationsByReg === 'object') {
+			Object.keys(app.classificationsByReg).forEach((regName) => {
+				(app.classificationsByReg[regName] || []).forEach((entry) => {
+					const dataObjects = getUniqueList((entry.data_objects || []).map((d) => toDisplayValue(d.name || d))).join(', ');
+					regulationRows.push([
+						toDisplayValue(regName),
+						toDisplayValue(entry.classificationName || entry.name || ''),
+						dataObjects
+					]);
+				});
+			});
+		}
+		if (regulationRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Regulations and Classifications', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const table = buildDocxTableFromRows(api, ['Regulation', 'Classification Name', 'Data Objects'], regulationRows);
+			if (table) {
+				blocks.push(table);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+		return blocks;
+	}
+
+	function extractBusinessProcessBlocksFromData(api, app){
+		const blocks = [];
+		const rows = getUniqueList((app.processInfo || []).map((p) => JSON.stringify([
+			toDisplayValue(p.name || p.processName || ''),
+			toDisplayValue(p.org || ''),
+			toDisplayValue(p.svcName || ''),
+			toDisplayValue(p.direction || '')
+		]))).map((line) => {
+			try {
+				return JSON.parse(line);
+			} catch (e) {
+				return null;
+			}
+		}).filter(Boolean);
+		if (!rows.length) {
+			return blocks;
+		}
+		blocks.push(new api.Paragraph({ text: 'Business Process Supported', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+		const table = buildDocxTableFromRows(api, ['Process', 'Organisation', 'Service', 'Route'], rows);
+		if (table) {
+			blocks.push(table);
+			blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+		}
+		return blocks;
+	}
+
+	function extractServicesBlocksFromData(api, app){
+		const blocks = [];
+		const rows = (app.allServices || []).map((svc) => {
+			const functions = getUniqueList((svc.functions || []).map((f) => toDisplayValue(f.name || f))).join(', ');
+			const processes = getUniqueList((svc.processes || []).map((p) => toDisplayValue(p.name || p))).join(', ');
+			return [
+				toDisplayValue(svc.serviceName || svc.name || svc),
+				toDisplayValue(svc.description || ''),
+				functions,
+				processes
+			];
+		}).filter((r) => r[0]);
+		if (!rows.length) {
+			return blocks;
+		}
+		blocks.push(new api.Paragraph({ text: 'Application Services', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+		const table = buildDocxTableFromRows(api, ['Application Service', 'Description', 'Functions', 'Processes'], rows);
+		if (table) {
+			blocks.push(table);
+			blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+		}
+		return blocks;
+	}
+
+	function extractCapabilityBlocksFromData(api, app){
+		const blocks = [];
+		const caps = app.caps || {};
+		const capKeys = Object.keys(caps);
+		if (!capKeys.length) {
+			return blocks;
+		}
+		const sortedKeys = capKeys.sort((a, b) => Number(a) - Number(b));
+		sortedKeys.forEach((key, index) => {
+			const names = getUniqueList((caps[key] || []).map((c) => toDisplayValue(c.name || c)));
+			if (!names.length) {
+				return;
+			}
+			blocks.push(new api.Paragraph({ text: 'Level ' + (index + 1), heading: api.HeadingLevel.HEADING_2, spacing: { before: 160, after: 80 } }));
+			names.forEach((name) => {
+				blocks.push(new api.Paragraph({ text: name, bullet: { level: 0 }, spacing: { after: 80 } }));
+			});
+		});
+		return blocks;
+	}
+
+	function extractCostBlocksFromData(api, app){
+		const blocks = [];
+		const costRows = (app.costs || []).map((c) => [
+			toDisplayValue(c.name || c),
+			toDisplayValue(c.costType || '').replace(/_/g, ' '),
+			toDisplayValue(c.description || ''),
+			toDisplayValue((c.this_currency || c.currency || '') + (c.cost || '')),
+			dateForDoc(c.fromDate),
+			dateForDoc(c.toDate)
+		]).filter((r) => r[0]);
+		if (!costRows.length) {
+			return blocks;
+		}
+		const topDrivers = (app.costs || [])
+			.slice()
+			sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0))
+			.slice(0, 5)
+			.map((c) => toDisplayValue(c.name || c))
+			.filter(Boolean)
+			.join(', ');
+		if (topDrivers) {
+			blocks.push(docxBodyParagraph(api, 'Top Cost Drivers: ' + topDrivers));
+		}
+		blocks.push(new api.Paragraph({ text: 'Detailed Costs', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+		const table = buildDocxTableFromRows(api, ['Cost', 'Type', 'Description', 'Value', 'From Date', 'To Date'], costRows);
+		if (table) {
+			blocks.push(table);
+			blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+		}
+		return blocks;
+	}
+
+	function extractOtherEnumBlocksFromData(api, app){
+		const blocks = [];
+		const rows = getUniqueList((app.otherEnums || [])
+			.filter((e) => toDisplayValue(e.classNm).toLowerCase() !== 'distribute costs')
+			.map((e) => JSON.stringify([toDisplayValue(e.classNm), toDisplayValue(e.name)])))
+			.map((row) => {
+				try {
+					return JSON.parse(row);
+				} catch (err) {
+					return null;
+				}
+			}).filter(Boolean);
+		if (!rows.length) {
+			return blocks;
+		}
+		blocks.push(new api.Paragraph({ text: 'Other', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+		const table = buildDocxTableFromRows(api, ['Category', 'Value'], rows);
+		if (table) {
+			blocks.push(table);
+			blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+		}
+		return blocks;
+	}
+
+	function extractTechnologyBlocksFromData(api, app){
+		const blocks = [];
+		const dbRows = (app.db || [])
+			.map((d) => [toDisplayValue(d.infoRep) || toDisplayValue(d.name) || toDisplayValue(d.infoRepName) || toDisplayValue(d.id)])
+			.filter((r) => r[0]);
+		if (dbRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Databases', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const dbTable = buildDocxTableFromRows(api, ['Database'], dbRows);
+			if (dbTable) {
+				blocks.push(dbTable);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+
+		const techRows = [];
+		const nodeRows = [];
+		(app.applicationTechnology &amp;&amp; app.applicationTechnology.environments ? app.applicationTechnology.environments : []).forEach((env) => {
+			const envName = toDisplayValue(env.name || 'Environment');
+			(env.products || []).forEach((p) => {
+				const product = toDisplayValue(p.prodname || p.name || p);
+				const role = toDisplayValue(p.compname || '');
+				techRows.push([
+					envName,
+					role ? (product + ' - ' + role) : product
+				]);
+			});
+			(env.nodes || []).forEach((n) => {
+				nodeRows.push([
+					envName,
+					toDisplayValue(n.name || n),
+					toDisplayValue(n.site || '')
+				]);
+			});
+		});
+
+		if (techRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Technology by Environment', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const techTable = buildDocxTableFromRows(api, ['Environment', 'Product - Role'], techRows);
+			if (techTable) {
+				blocks.push(techTable);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+
+		if (nodeRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Deployment Nodes', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const nodeTable = buildDocxTableFromRows(api, ['Environment', 'Node', 'Site'], nodeRows);
+			if (nodeTable) {
+				blocks.push(nodeTable);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+		return blocks;
+	}
+
+	function extractIntegrationBlocksFromData(api, app){
+		const blocks = [];
+		const rows = [];
+		(app.inIList || []).forEach((i) => {
+			rows.push([
+				toDisplayValue(i.name || i.fromApp || i.appName || i),
+				toDisplayValue(i.type || i.className || ''),
+				'Inbound'
+			]);
+		});
+		(app.outIList || []).forEach((i) => {
+			rows.push([
+				toDisplayValue(i.name || i.toApp || i.appName || i),
+				toDisplayValue(i.type || i.className || ''),
+				'Outbound'
+			]);
+		});
+		const filteredRows = rows.filter((r) => r[0]);
+		if (filteredRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Integrations', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const tbl = buildDocxTableFromRows(api, ['Application / Interface', 'Type', 'Direction'], filteredRows);
+			if (tbl) {
+				blocks.push(tbl);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+		return blocks;
+	}
+
+	function resolvePerfCategoryName(categoryRaw){
+		const raw = toDisplayValue(categoryRaw);
+		if (!raw) {
+			return 'KPI';
+		}
+		if (typeof pmc !== 'undefined' &amp;&amp; Array.isArray(pmc)) {
+			const found = pmc.find((c) => String(c.id) === String(raw) || String(c.key) === String(raw) || String(c.name) === String(raw));
+			if (found &amp;&amp; found.name) {
+				return toDisplayValue(found.name);
+			}
+		}
+		return raw;
+	}
+
+	function extractKpiBlocksFromData(api, app){
+		const blocks = [];
+		const rows = [];
+		(app.perfsGrp || []).forEach((grp) => {
+			const cat = resolvePerfCategoryName(grp.name || grp.key || 'KPI');
+			(grp.values || []).forEach((v) => {
+				const quals = Array.isArray(v.serviceQuals) ? v.serviceQuals : [v];
+				quals.forEach((sq) => {
+					const svc = toDisplayValue(sq.serviceName || sq.name || v.serviceName || '');
+					const score = toDisplayValue(sq.score || sq.value || v.score || '');
+					if (!svc &amp;&amp; !score) {
+						return;
+					}
+					rows.push([
+						cat,
+						svc,
+						score
+					]);
+				});
+			});
+		});
+		if (!rows.length) {
+			return blocks;
+		}
+		blocks.push(new api.Paragraph({ text: 'Application KPIs', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+		const tbl = buildDocxTableFromRows(api, ['Category', 'Service', 'Score'], rows);
+		if (tbl) {
+			blocks.push(tbl);
+			blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+		}
+		return blocks;
+	}
+
+	function extractPlansBlocksFromData(api, app){
+		const blocks = [];
+		const planRows = (app.plans || []).map((p) => [
+			toDisplayValue(p.name || p),
+			dateForDoc(p.validStartDate),
+			dateForDoc(p.validEndDate)
+		]).filter((r) => r[0]);
+		const projectRows = (app.projects || []).map((p) => [
+			toDisplayValue(p.name || p),
+			dateForDoc(p.proposedStartDate),
+			dateForDoc(p.actualStartDate),
+			dateForDoc(p.targetEndDate || p.forecastEndDate),
+			toDisplayValue(p.lifecycleStatus || p.approvalStatus || '')
+		]).filter((r) => r[0]);
+		if (planRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Plans', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const planTbl = buildDocxTableFromRows(api, ['Plan', 'Start', 'End'], planRows);
+			if (planTbl) {
+				blocks.push(planTbl);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+		if (projectRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Projects', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const projectTbl = buildDocxTableFromRows(api, ['Project', 'Proposed Start', 'Actual Start', 'Target/Forecast End', 'Status'], projectRows);
+			if (projectTbl) {
+				blocks.push(projectTbl);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+		const impactRows = [];
+		(app.projectElements || []).forEach((p) => {
+			impactRows.push([
+				toDisplayValue(p.planInfo || p.plan || ''),
+				toDisplayValue(p.projectInfo || p.projectName || ''),
+				toDisplayValue(p.action || p.apraction || ''),
+				dateForDoc(p.projForeStart || p.proposedStartDate),
+				dateForDoc(p.projForeEnd || p.targetEndDate || p.forecastEndDate)
+			]);
+		});
+		(app.aprprojectElements || []).forEach((p) => {
+			impactRows.push([
+				toDisplayValue(p.planInfo || p.plan || ''),
+				toDisplayValue(p.projectInfo || p.projectName || ''),
+				toDisplayValue(p.apraction || p.action || ''),
+				dateForDoc(p.projForeStart || p.proposedStartDate),
+				dateForDoc(p.projForeEnd || p.targetEndDate || p.forecastEndDate)
+			]);
+		});
+		const filteredImpactRows = impactRows.filter((r) => r[0] || r[1] || r[2]);
+		if (filteredImpactRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Impacting Projects', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const impactTbl = buildDocxTableFromRows(api, ['Plan', 'Project', 'Action', 'Start', 'End'], filteredImpactRows);
+			if (impactTbl) {
+				blocks.push(impactTbl);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+		return blocks;
+	}
+
+	function extractAppDataBlocksFromData(api, app){
+		const blocks = [];
+		const usageRows = [];
+		(app.thisAppArray || []).forEach((obj) => {
+			const objectName = toDisplayValue(obj.dataObject || obj.name || obj.id || '');
+			const classNames = (obj.classifications || [])
+				.map((c) => toDisplayValue(c.name || c))
+				.filter(Boolean)
+				.join(', ');
+			(obj.values || []).forEach((v) => {
+				const irName = toDisplayValue(v.nameirep || v.irInfo || v.idirep || '');
+				let crud = formatCrudForDoc(v);
+				let whereText = '';
+				if (Array.isArray(v.datarepsimplemented) &amp;&amp; v.datarepsimplemented.length) {
+					whereText = v.datarepsimplemented
+						.map((d) => resolveDataRepLabel(d.dataRepid || d.name || d))
+						.filter(Boolean)
+						.join(', ');
+				}
+				usageRows.push([
+					objectName,
+					irName,
+					whereText || 'n/a',
+					crud || 'n/a',
+					classNames || 'n/a'
+				]);
+			});
+		});
+		if (usageRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Data Usage', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const usageTable = buildDocxTableFromRows(api, ['Data Object', 'Information Representation', 'Data Representation(s)', 'CRUD', 'Classifications'], usageRows);
+			if (usageTable) {
+				blocks.push(usageTable);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+
+		const requiredRows = (app.requiredData || [])
+			.map((d) => [toDisplayValue(d.name || d)])
+			.filter((r) => r[0]);
+		if (requiredRows.length) {
+			blocks.push(new api.Paragraph({ text: 'Data Required', heading: api.HeadingLevel.HEADING_2, spacing: { before: 180, after: 90 } }));
+			const reqTable = buildDocxTableFromRows(api, ['Data Object'], requiredRows);
+			if (reqTable) {
+				blocks.push(reqTable);
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+			}
+		}
+		return blocks;
+	}
+
+	async function buildExportableClone(sourcePane, tabId){
+		if (!sourcePane) {
+			return null;
+		}
+		const clonePane = sourcePane.cloneNode(true);
+		clonePane.querySelectorAll('script').forEach((scriptNode) => scriptNode.remove());
+		clonePane.querySelectorAll('.no-print, .dataTables_filter, .dataTables_length, .dataTables_info, .dataTables_paginate, .dt-buttons').forEach((node) => node.remove());
+		clonePane.querySelectorAll('tfoot').forEach((node) => node.remove());
+		if (tabId === 'appservices') {
+			clonePane.querySelectorAll('.alternate-service-container').forEach((node) => node.remove());
+		}
+		clonePane.classList.remove('tab-pane', 'fade', 'active', 'in');
+		clonePane.style.display = 'block';
+		clonePane.style.visibility = 'visible';
+		clonePane.style.opacity = '1';
+		// Ensure nested tab/collapse content is visible in export output.
+		clonePane.querySelectorAll('.tab-pane, .fade, .collapse').forEach((node) => {
+			node.classList.remove('fade', 'active', 'in', 'collapse');
+			node.style.display = 'block';
+			node.style.visibility = 'visible';
+			node.style.opacity = '1';
+			node.style.height = 'auto';
+		});
+		clonePane.querySelectorAll('[style*="display: none"]').forEach((node) => {
+			node.style.display = 'block';
+		});
+		replaceCanvasWithImageElements(sourcePane, clonePane);
+		await replaceSvgWithImageElements(sourcePane, clonePane);
+		return clonePane;
+	}
+
+	function extractFallbackLinesFromClone(clonePane){
+		const text = (clonePane.innerText || clonePane.textContent || '')
+			.replace(/\r/g, '\n')
+			.replace(/\t/g, ' ')
+			.replace(/[ ]{2,}/g, ' ');
+		const lines = text
+			.split('\n')
+			.map((line) => normalizeWordExportText(line))
+			.filter((line) => line.length > 0);
+		const seen = new Set();
+		return lines.filter((line) => {
+			const key = line.toLowerCase();
+			if (seen.has(key)) {
+				return false;
+			}
+			seen.add(key);
+			return true;
+		});
+	}
+
+	function buildSimpleHtmlTable(headers, rows){
+		if (!rows || !rows.length) {
+			return '';
+		}
+		const headHtml = '<tr>' + headers.map((h) => '<th>' + escapeWordExportHtml(h) + '</th>').join('') + '</tr>';
+		const bodyHtml = rows.map((row) => {
+			const cells = row.map((cell) => '<td>' + escapeWordExportHtml(toDisplayValue(cell)) + '</td>').join('');
+			return '<tr>' + cells + '</tr>';
+		}).join('');
+		return '<table><thead>' + headHtml + '</thead><tbody>' + bodyHtml + '</tbody></table>';
+	}
+
+	function parseImageDimension(value){
+		if (!value) {
+			return null;
+		}
+		const n = parseInt(String(value).replace('px', ''), 10);
+		if (!Number.isFinite(n) || n &lt;= 0) {
+			return null;
+		}
+		return n;
+	}
+
+	function getDataImagesFromClone(clonePane, maxImages){
+		if (!clonePane) {
+			return [];
+		}
+		const limit = maxImages || 6;
+		return Array.from(clonePane.querySelectorAll('img'))
+			.map((img) => {
+				const src = img.getAttribute('src') || '';
+				const width = parseImageDimension(img.getAttribute('width')) || parseImageDimension(img.style.width) || parseImageDimension(img.getAttribute('data-width'));
+				const height = parseImageDimension(img.getAttribute('height')) || parseImageDimension(img.style.height) || parseImageDimension(img.getAttribute('data-height'));
+				return { src: src, width: width, height: height };
+			})
+			.filter((img) => img.src.indexOf('data:image/') === 0)
+			.slice(0, limit);
+	}
+
+	function buildHtmlImagesBlockFromClone(clonePane, maxImages){
+		const images = getDataImagesFromClone(clonePane, maxImages);
+		if (!images.length) {
+			return '';
+		}
+		const imagesHtml = images.map((img) => '<p><img src="' + img.src + '" alt="chart" class="word-export-chart"/></p>').join('');
+		return '<h3>Charts</h3>' + imagesHtml;
+	}
+
+	function buildExportModelForTab(tabId, app){
+		const model = {
+			sections: []
+		};
+		if (tabId === 'details') {
+			const keyRows = [];
+			const businessCriticality = resolveFilteredValues('ap_business_criticality', app.ap_business_criticality);
+			const lifecycleStatus = resolveFilteredValues('lifecycle_status_application_provider', app.lifecycle_status_application_provider);
+			const codebaseStatus = resolveFilteredValues('ap_codebase_status', app.ap_codebase_status);
+			const deliveryModel = resolveFilteredValues('ap_delivery_model', app.ap_delivery_model);
+			const disposition = resolveFilteredValues('ap_disposition_lifecycle_status', app.ap_disposition_lifecycle_status);
+			const purpose = resolveFilteredValues('application_provider_purpose', app.application_provider_purpose);
+			const supplier = toDisplayValue(app.supplier);
+			const family = getUniqueList((app.family || []).map((f) => toDisplayValue(f.name || f))).join(', ');
+			if (businessCriticality) { keyRows.push(['Business Criticality', businessCriticality]); }
+			if (lifecycleStatus) { keyRows.push(['Lifecycle Status', lifecycleStatus]); }
+			if (codebaseStatus) { keyRows.push(['Codebase', codebaseStatus]); }
+			if (deliveryModel) { keyRows.push(['Delivery Model', deliveryModel]); }
+			if (disposition) { keyRows.push(['Disposition', disposition]); }
+			if (purpose) { keyRows.push(['Purpose', purpose]); }
+			if (supplier) { keyRows.push(['Application Supplier', supplier]); }
+			if (family) { keyRows.push(['Application Family', family]); }
+			if (keyRows.length) {
+				model.sections.push({
+					title: 'Key Information',
+					table: { headers: ['Field', 'Value'], rows: keyRows }
+				});
+			}
+
+			const stakeholderRows = getUniqueRows((app.stakeholdersList || [])
+				.map((person) => {
+					const roles = getUniqueList((person.values || []).map((v) => toDisplayValue(v.role || v))).join(', ');
+					return [toDisplayValue(person.name || person.key || ''), roles];
+				})
+				.filter((r) => r[0] || r[1]));
+			if (stakeholderRows.length) {
+				model.sections.push({
+					title: 'People &amp; Roles',
+					table: { headers: ['Person', 'Role'], rows: stakeholderRows }
+				});
+			}
+
+			const orgRows = getUniqueRows((app.orgStakeholdersList || [])
+				.map((org) => {
+					const roles = getUniqueList((org.values || []).map((v) => toDisplayValue(v.role || v))).join(', ');
+					return [toDisplayValue(org.name || org.key || ''), roles];
+				})
+				.filter((r) => r[0] || r[1]));
+			if (orgRows.length) {
+				model.sections.push({
+					title: 'Organisations &amp; Roles',
+					table: { headers: ['Organisations', 'Role'], rows: orgRows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appSecurity' &amp;&amp; app.security) {
+			const s = app.security;
+			const securityRows = getUniqueRows([
+				['Confidentiality Rating', toDisplayValue(s.sec_profile_confidentiality_rating)],
+				['Integrity Rating', toDisplayValue(s.sec_profile_integrity_rating)],
+				['Availability Rating', toDisplayValue(s.sec_profile_availability_rating)],
+				['Confidentiality Risk Impact', toDisplayValue(s.sec_profile_confidentiality_risk_impact)],
+				['Integrity Risk Impact', toDisplayValue(s.sec_profile_integrity_risk_impact)],
+				['Availability Risk Impact', toDisplayValue(s.sec_profile_availability_risk_impact)],
+				['Access Review Frequency', toDisplayValue(s.sec_profile_user_access_review_frequency)],
+				['Internal Facing', toDisplayValue(s.sec_profile_is_internal_facing)],
+				['External Facing', toDisplayValue(s.sec_profile_is_external_facing)]
+			]).filter((r) => r[0] &amp;&amp; r[1]);
+			if (securityRows.length) {
+				model.sections.push({
+					title: 'Security',
+					table: { headers: ['Field', 'Value'], rows: securityRows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appIntegration') {
+			const rows = getUniqueRows([
+				...(app.inIList || []).map((i) => [toDisplayValue(i.name || i.fromApp || i.appName || i), toDisplayValue(i.type || i.className || ''), 'Inbound']),
+				...(app.outIList || []).map((i) => [toDisplayValue(i.name || i.toApp || i.appName || i), toDisplayValue(i.type || i.className || ''), 'Outbound'])
+			]).filter((r) => r[0]);
+			if (rows.length) {
+				model.sections.push({
+					title: 'Integrations',
+					table: { headers: ['Application / Interface', 'Type', 'Direction'], rows: rows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'buscaps') {
+			const caps = app.caps || {};
+			Object.keys(caps).sort((a, b) => Number(a) - Number(b)).forEach((key, index) => {
+				const rows = getUniqueRows((caps[key] || []).map((c) => [toDisplayValue(c.name || c)])).filter((r) => r[0]);
+				if (rows.length) {
+					model.sections.push({
+						title: 'Level ' + (index + 1),
+						table: { headers: ['Business Capability'], rows: rows }
+					});
+				}
+			});
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appClassifications') {
+			const rto = resolveFilteredValues('ea_recovery_time_objective', app.ea_recovery_time_objective);
+			const rpo = resolveFilteredValues('ea_recovery_point_objective', app.ea_recovery_point_objective);
+			if (rto || rpo) {
+				model.sections.push({
+					title: 'Recovery Objectives',
+					paragraphs: ['RTO: ' + (rto || 'Not set') + ', RPO: ' + (rpo || 'Not set')]
+				});
+			}
+			const regRows = [];
+			if (app.classificationsByReg &amp;&amp; typeof app.classificationsByReg === 'object') {
+				Object.keys(app.classificationsByReg).forEach((regName) => {
+					(app.classificationsByReg[regName] || []).forEach((entry) => {
+						regRows.push([
+							toDisplayValue(regName),
+							toDisplayValue(entry.classificationName || entry.name || ''),
+							getUniqueList((entry.data_objects || []).map((d) => toDisplayValue(d.name || d))).join(', ')
+						]);
+					});
+				});
+			}
+			const cleanRegRows = getUniqueRows(regRows).filter((r) => r[0] || r[1] || r[2]);
+			if (cleanRegRows.length) {
+				model.sections.push({
+					title: 'Regulations and Classifications',
+					table: { headers: ['Regulation', 'Classification Name', 'Data Objects'], rows: cleanRegRows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appProcesses') {
+			const rows = getUniqueRows((app.processInfo || []).map((p) => [
+				toDisplayValue(p.name || p.processName || ''),
+				toDisplayValue(p.org || ''),
+				toDisplayValue(p.svcName || ''),
+				toDisplayValue(p.direction || '')
+			])).filter((r) => r[0] || r[1] || r[2] || r[3]);
+			if (rows.length) {
+				model.sections.push({
+					title: 'Business Process Supported',
+					table: { headers: ['Process', 'Organisation', 'Service', 'Route'], rows: rows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appTech') {
+			const dbRows = getUniqueRows((app.db || []).map((d) => [toDisplayValue(d.infoRep || d.name || d.infoRepName || d.id)])).filter((r) => r[0]);
+			if (dbRows.length) {
+				model.sections.push({
+					title: 'Databases',
+					table: { headers: ['Database'], rows: dbRows }
+				});
+			}
+			const techRows = [];
+			(app.applicationTechnology &amp;&amp; app.applicationTechnology.environments ? app.applicationTechnology.environments : []).forEach((env) => {
+				const envName = toDisplayValue(env.name || 'Environment');
+				(env.products || []).forEach((p) => {
+					const product = toDisplayValue(p.prodname || p.name || p);
+					const role = toDisplayValue(p.compname || '');
+					techRows.push([envName, role ? (product + ' - ' + role) : product]);
+				});
+			});
+			const cleanTechRows = getUniqueRows(techRows).filter((r) => r[0] || r[1]);
+			if (cleanTechRows.length) {
+				model.sections.push({
+					title: 'Technology by Environment',
+					table: { headers: ['Environment', 'Product - Role'], rows: cleanTechRows }
+				});
+			}
+			const nodeRows = [];
+			(app.applicationTechnology &amp;&amp; app.applicationTechnology.environments ? app.applicationTechnology.environments : []).forEach((env) => {
+				const envName = toDisplayValue(env.name || 'Environment');
+				(env.nodes || []).forEach((n) => {
+					nodeRows.push([envName, toDisplayValue(n.name || n), toDisplayValue(n.site || '')]);
+				});
+			});
+			const cleanNodeRows = getUniqueRows(nodeRows).filter((r) => r[0] || r[1]);
+			if (cleanNodeRows.length) {
+				model.sections.push({
+					title: 'Deployment Nodes',
+					table: { headers: ['Environment', 'Node', 'Site'], rows: cleanNodeRows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appcosts') {
+			const costRows = getUniqueRows((app.costs || []).map((c) => [
+				toDisplayValue(c.name || c),
+				toDisplayValue(c.costType || '').replace(/_/g, ' '),
+				toDisplayValue(c.description || ''),
+				toDisplayValue((c.this_currency || c.currency || '') + (c.cost || '')),
+				dateForDoc(c.fromDate),
+				dateForDoc(c.toDate)
+			])).filter((r) => r[0]);
+			if (costRows.length) {
+				const topDrivers = (app.costs || []).slice().sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0)).slice(0, 5).map((c) => toDisplayValue(c.name || c)).filter(Boolean).join(', ');
+				if (topDrivers) {
+					model.sections.push({ title: 'Top Cost Drivers', paragraphs: [topDrivers] });
+				}
+				model.sections.push({
+					title: 'Detailed Costs',
+					table: { headers: ['Cost', 'Type', 'Description', 'Value', 'From Date', 'To Date'], rows: costRows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appservices') {
+			const rows = getUniqueRows((app.allServices || []).map((svc) => [
+				toDisplayValue(svc.serviceName || svc.name || svc.linkDetails || svc.id),
+				toDisplayValue(svc.description || ''),
+				getUniqueList((svc.functions || []).map((f) => toDisplayValue(f.name || f))).join(', '),
+				getUniqueList((svc.processes || []).map((p) => toDisplayValue(p.name || p))).join(', ')
+			])).filter((r) => r[0]);
+			if (rows.length) {
+				model.sections.push({
+					title: 'Application Services',
+					table: { headers: ['Application Service', 'Description', 'Functions', 'Processes'], rows: rows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appLifecycle') {
+			const rows = getUniqueRows((app.lifecycles || []).map((l) => [toDisplayValue(l.enumname || l.name || l.id), dateForDoc(l.dateOf)])).filter((r) => r[0] || r[1]);
+			if (rows.length) {
+				model.sections.push({
+					title: 'Application Lifecycles',
+					table: { headers: ['Stage', 'Date'], rows: rows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appKpis') {
+			const rows = [];
+			(app.perfsGrp || []).forEach((grp) => {
+				const cat = resolvePerfCategoryName(grp.name || grp.key || 'KPI');
+				(grp.values || []).forEach((v) => {
+					(Array.isArray(v.serviceQuals) ? v.serviceQuals : [v]).forEach((sq) => {
+						const svc = toDisplayValue(sq.serviceName || sq.name || v.serviceName || '');
+						const score = toDisplayValue(sq.score || sq.value || v.score || '');
+						if (svc || score) {
+							rows.push([cat, svc, score]);
+						}
+					});
+				});
+			});
+			const cleanRows = getUniqueRows(rows);
+			if (cleanRows.length) {
+				model.sections.push({
+					title: 'Application KPIs',
+					table: { headers: ['Category', 'Service', 'Score'], rows: cleanRows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'issues') {
+			const rows = getUniqueRows((app.issues || []).map((i) => [
+				toDisplayValue(i.name || ''),
+				toDisplayValue(i.description || ''),
+				toDisplayValue(i.status || '')
+			])).filter((r) => r[0] || r[1] || r[2]);
+			if (rows.length) {
+				model.sections.push({
+					title: 'Issues',
+					table: { headers: ['Issue', 'Description', 'Status'], rows: rows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appPlans') {
+			const planRows = getUniqueRows((app.plans || []).map((p) => [toDisplayValue(p.name || p), dateForDoc(p.validStartDate), dateForDoc(p.validEndDate)])).filter((r) => r[0]);
+			if (planRows.length) {
+				model.sections.push({ title: 'Plans', table: { headers: ['Plan', 'Start', 'End'], rows: planRows } });
+			}
+			const projectRows = getUniqueRows((app.projects || []).map((p) => [toDisplayValue(p.name || p), dateForDoc(p.proposedStartDate), dateForDoc(p.actualStartDate), dateForDoc(p.targetEndDate || p.forecastEndDate), toDisplayValue(p.lifecycleStatus || p.approvalStatus || '')])).filter((r) => r[0]);
+			if (projectRows.length) {
+				model.sections.push({ title: 'Projects', table: { headers: ['Project', 'Proposed Start', 'Actual Start', 'Target/Forecast End', 'Status'], rows: projectRows } });
+			}
+			const impactRows = getUniqueRows([
+				...(app.projectElements || []).map((p) => [toDisplayValue(p.planInfo || p.plan || ''), toDisplayValue(p.projectInfo || p.projectName || ''), toDisplayValue(p.action || p.apraction || ''), dateForDoc(p.projForeStart || p.proposedStartDate), dateForDoc(p.projForeEnd || p.targetEndDate || p.forecastEndDate)]),
+				...(app.aprprojectElements || []).map((p) => [toDisplayValue(p.planInfo || p.plan || ''), toDisplayValue(p.projectInfo || p.projectName || ''), toDisplayValue(p.apraction || p.action || ''), dateForDoc(p.projForeStart || p.proposedStartDate), dateForDoc(p.projForeEnd || p.targetEndDate || p.forecastEndDate)])
+			]).filter((r) => r[0] || r[1] || r[2]);
+			if (impactRows.length) {
+				model.sections.push({ title: 'Impacting Projects', table: { headers: ['Plan', 'Project', 'Action', 'Start', 'End'], rows: impactRows } });
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'otherEnums') {
+			const rows = getUniqueRows((app.otherEnums || [])
+				.filter((e) => toDisplayValue(e.classNm).toLowerCase() !== 'distribute costs')
+				.map((e) => [toDisplayValue(e.classNm), toDisplayValue(e.name)]))
+				.filter((r) => r[0] || r[1]);
+			if (rows.length) {
+				model.sections.push({
+					title: 'Other',
+					table: { headers: ['Category', 'Value'], rows: rows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'appdata') {
+			const usageRows = [];
+			(app.thisAppArray || []).forEach((obj) => {
+				const objectName = toDisplayValue(obj.dataObject || obj.name || obj.id || '');
+				(obj.values || []).forEach((v) => {
+					usageRows.push([
+						objectName,
+						toDisplayValue(v.nameirep || v.irInfo || v.idirep || ''),
+						normalizeCrudValue(v.create),
+						normalizeCrudValue(v.read),
+						normalizeCrudValue(v.update),
+						normalizeCrudValue(v.delete)
+					]);
+				});
+			});
+			const cleanUsageRows = getUniqueRows(usageRows).filter((r) => r[0] || r[1]);
+			if (cleanUsageRows.length) {
+				model.sections.push({
+					title: 'Application Data',
+					table: { headers: ['Data Object', 'Information Representation', 'Create', 'Read', 'Update', 'Delete'], rows: cleanUsageRows }
+				});
+			}
+			const requiredRows = getUniqueRows((app.requiredData || []).map((d) => [toDisplayValue(d.name || d)])).filter((r) => r[0]);
+			if (requiredRows.length) {
+				model.sections.push({
+					title: 'Data Required',
+					table: { headers: ['Data Object'], rows: requiredRows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+
+		if (tabId === 'documents') {
+			const rows = [];
+			(app.documents || []).forEach((group) => {
+				(group.values || []).forEach((doc) => {
+					rows.push([
+						toDisplayValue(group.key || ''),
+						toDisplayValue(doc.name || ''),
+						toDisplayValue(doc.description || ''),
+						toDisplayValue(doc.documentLink || '')
+					]);
+				});
+			});
+			const cleanRows = getUniqueRows(rows).filter((r) => r[1] || r[3]);
+			if (cleanRows.length) {
+				model.sections.push({
+					title: 'Documentation',
+					table: { headers: ['Category', 'Name', 'Description', 'Link'], rows: cleanRows }
+				});
+			}
+			return model.sections.length ? model : null;
+		}
+		return null;
+	}
+
+	function renderHtmlFromExportModel(model, sectionTitle){
+		if (!model || !Array.isArray(model.sections) || !model.sections.length) {
+			return '';
+		}
+		const sectionKey = normalizeWordExportText(sectionTitle || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+		const parts = ['<div class="word-export-content">'];
+		model.sections.forEach((section) => {
+			const titleText = toDisplayValue(section.title || '');
+			const titleKey = titleText.toLowerCase().replace(/[^a-z0-9]+/g, '');
+			if (titleText &amp;&amp; titleKey !== sectionKey) {
+				parts.push('<h3>' + escapeWordExportHtml(titleText) + '</h3>');
+			}
+			if (section.paragraphs &amp;&amp; section.paragraphs.length) {
+				section.paragraphs.forEach((p) => {
+					parts.push('<p>' + escapeWordExportHtml(p) + '</p>');
+				});
+			}
+			if (section.table &amp;&amp; section.table.headers &amp;&amp; section.table.rows) {
+				parts.push(buildSimpleHtmlTable(section.table.headers, section.table.rows));
+			}
+		});
+		parts.push('</div>');
+		return parts.join('');
+	}
+
+	function renderDocxFromExportModel(api, model, sectionTitle){
+		const blocks = [];
+		if (!model || !Array.isArray(model.sections) || !model.sections.length) {
+			return blocks;
+		}
+		const sectionKey = normalizeWordExportText(sectionTitle || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+		model.sections.forEach((section) => {
+			const titleText = toDisplayValue(section.title || '');
+			const titleKey = titleText.toLowerCase().replace(/[^a-z0-9]+/g, '');
+			if (titleText &amp;&amp; titleKey !== sectionKey) {
+				blocks.push(new api.Paragraph({
+					text: titleText,
+					heading: api.HeadingLevel.HEADING_2,
+					spacing: { before: 180, after: 90 }
+				}));
+			}
+			(section.paragraphs || []).forEach((p) => {
+				blocks.push(docxBodyParagraph(api, p));
+			});
+			if (section.table &amp;&amp; section.table.headers &amp;&amp; section.table.rows) {
+				const table = buildDocxTableFromRows(api, section.table.headers, section.table.rows);
+				if (table) {
+					blocks.push(table);
+					blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+				}
+			}
+		});
+		return blocks;
+	}
+
+	function sanitizeCloneForWordHtml(clonePane, tabLabel){
+		if (!clonePane) {
+			return '';
+		}
+		const node = clonePane.cloneNode(true);
+		node.querySelectorAll('script, style, .popover, .dropdown-menu, .tooltip').forEach((n) => n.remove());
+		node.querySelectorAll('[style*="display: none"]').forEach((n) => n.remove());
+		node.querySelectorAll('tfoot').forEach((n) => n.remove());
+		node.querySelectorAll('button').forEach((btn) => {
+			const text = normalizeWordExportText(btn.textContent);
+			const span = document.createElement('span');
+			span.className = 'label';
+			span.textContent = text || normalizeWordExportText(btn.getAttribute('title') || '');
+			btn.parentNode.replaceChild(span, btn);
+		});
+		node.querySelectorAll('input, select, textarea').forEach((n) => n.remove());
+		node.querySelectorAll('.collapse').forEach((n) => {
+			n.classList.remove('collapse', 'in');
+			n.style.display = 'block';
+		});
+		node.querySelectorAll('a').forEach((a) => {
+			const text = normalizeWordExportText(a.textContent) || normalizeWordExportText(a.getAttribute('href') || '');
+			const span = document.createElement('span');
+			span.textContent = text;
+			a.parentNode.replaceChild(span, a);
+		});
+		node.querySelectorAll('table').forEach((table) => {
+			const rowSignature = (tr) => Array.from(tr.cells || [])
+				.map((cell) => normalizeWordExportText(cell.textContent).toLowerCase())
+				.join('|');
+
+			// Build a canonical header signature from first THEAD row, else first table row.
+			const allRows = Array.from(table.querySelectorAll('tr'));
+			if (!allRows.length) {
+				return;
+			}
+			let canonicalHeaderRow = table.querySelector('thead tr');
+			if (!canonicalHeaderRow) {
+				canonicalHeaderRow = allRows[0];
+			}
+			const canonicalHeaderSig = rowSignature(canonicalHeaderRow);
+			if (!canonicalHeaderSig) {
+				return;
+			}
+
+			// Ensure a THEAD exists with exactly one header row.
+			let thead = table.querySelector('thead');
+			if (!thead) {
+				thead = document.createElement('thead');
+				table.insertBefore(thead, table.firstChild);
+			}
+			const canonicalClone = canonicalHeaderRow.cloneNode(true);
+			Array.from(canonicalClone.querySelectorAll('td')).forEach((td) => {
+				const th = document.createElement('th');
+				th.innerHTML = td.innerHTML;
+				Array.from(td.attributes || []).forEach((attr) => th.setAttribute(attr.name, attr.value));
+				td.parentNode.replaceChild(th, td);
+			});
+			thead.innerHTML = '';
+			thead.appendChild(canonicalClone);
+
+			// Remove every duplicate header-like row from TBODY/other rows.
+			const bodyRows = Array.from(table.querySelectorAll('tbody tr, tr'));
+			bodyRows.forEach((tr) => {
+				if (tr.parentElement &amp;&amp; tr.parentElement.tagName === 'THEAD') {
+					return;
+				}
+				const sig = rowSignature(tr);
+				const allHeaderCells = Array.from(tr.cells || []).every((cell) => cell.tagName === 'TH');
+				if (!sig) {
+					tr.remove();
+					return;
+				}
+				if (sig === canonicalHeaderSig || allHeaderCells) {
+					tr.remove();
+				}
+			});
+		});
+		// DataTables can render a header-only companion table (e.g. scrollHead).
+		// Remove header-only tables and duplicate adjacent tables with same header.
+		const tableList = Array.from(node.querySelectorAll('table'));
+		const getHeaderSig = (table) => {
+			const firstHeaderRow = table.querySelector('thead tr') || table.querySelector('tr');
+			if (!firstHeaderRow) {
+				return '';
+			}
+			return Array.from(firstHeaderRow.cells || [])
+				.map((cell) => normalizeWordExportText(cell.textContent).toLowerCase())
+				.join('|');
+		};
+		const getBodyRowCount = (table) => {
+			const rows = Array.from(table.querySelectorAll('tbody tr'));
+			if (!rows.length) {
+				return 0;
+			}
+			let count = 0;
+			rows.forEach((tr) => {
+				const txt = normalizeWordExportText(tr.textContent);
+				if (txt) {
+					count += 1;
+				}
+			});
+			return count;
+		};
+		for (let i = 0; i &lt; tableList.length; i += 1) {
+			const table = tableList[i];
+			if (!table || !table.parentNode) {
+				continue;
+			}
+			const headerSig = getHeaderSig(table);
+			const bodyCount = getBodyRowCount(table);
+			if (bodyCount === 0) {
+				table.remove();
+				continue;
+			}
+			const next = table.nextElementSibling;
+			if (next &amp;&amp; next.tagName === 'TABLE') {
+				const nextHeaderSig = getHeaderSig(next);
+				const nextBodyCount = getBodyRowCount(next);
+				if (headerSig &amp;&amp; headerSig === nextHeaderSig &amp;&amp; bodyCount &lt;= 1 &amp;&amp; nextBodyCount > bodyCount) {
+					table.remove();
+				}
+			}
+		}
+		const headingKey = (value) => normalizeWordExportText(value).toLowerCase().replace(/[^a-z0-9]+/g, '');
+		const tabKey = headingKey(tabLabel);
+		const seenHeadingKeys = new Set();
+		node.querySelectorAll('h1, h2, h3, h4').forEach((h) => {
+			const text = normalizeWordExportText(h.textContent);
+			const key = headingKey(text);
+			if (!key) {
+				h.remove();
+				return;
+			}
+			const matchesTab = tabKey &amp;&amp; (key === tabKey || key.indexOf(tabKey) === 0 || tabKey.indexOf(key) === 0);
+			if (matchesTab || seenHeadingKeys.has(key)) {
+				h.remove();
+				return;
+			}
+			seenHeadingKeys.add(key);
+		});
+		return '<div class="word-export-content">' + node.innerHTML + '</div>';
+	}
+
+	function buildWordFriendlyHtmlForTab(tabId, clonePane, tabLabel){
+		const structuredModel = buildExportModelForTab(tabId, focusApp || {});
+		if (structuredModel) {
+			const html = renderHtmlFromExportModel(structuredModel, tabLabel);
+			if (html) {
+				if (tabId === 'appcosts') {
+					const chartsHtml = buildHtmlImagesBlockFromClone(clonePane, 6);
+					if (chartsHtml) {
+						return html.replace('&lt;/div&gt;', chartsHtml + '&lt;/div&gt;');
+					}
+				}
+				return html;
+			}
+		}
+		if (tabId === 'appIntegration') {
+			const rows = [];
+			((focusApp &amp;&amp; focusApp.inIList) || []).forEach((i) => {
+				rows.push([
+					toDisplayValue(i.name || i.fromApp || i.appName || i),
+					toDisplayValue(i.type || i.className || ''),
+					'Inbound'
+				]);
+			});
+			((focusApp &amp;&amp; focusApp.outIList) || []).forEach((i) => {
+				rows.push([
+					toDisplayValue(i.name || i.toApp || i.appName || i),
+					toDisplayValue(i.type || i.className || ''),
+					'Outbound'
+				]);
+			});
+			const filteredRows = rows.filter((r) => r[0]);
+			if (!filteredRows.length) {
+				return '<div class="word-export-content"><p>No integrations captured.</p></div>';
+			}
+			const tableHtml = buildSimpleHtmlTable(['Application / Interface', 'Type', 'Direction'], filteredRows);
+			return '<div class="word-export-content">' + tableHtml + '</div>';
+		}
+		if (tabId === 'appservices') {
+			const rows = (((focusApp &amp;&amp; focusApp.allServices) || []).map((svc) => {
+				const functions = getUniqueList((svc.functions || []).map((f) => toDisplayValue(f.name || f))).join(', ');
+				const processes = getUniqueList((svc.processes || []).map((p) => toDisplayValue(p.name || p))).join(', ');
+				return [
+					toDisplayValue(svc.serviceName || svc.name || svc.linkDetails || svc.id),
+					toDisplayValue(svc.description || ''),
+					functions,
+					processes
+				];
+			})).filter((r) => r[0]);
+			if (!rows.length) {
+				return '<div class="word-export-content"><p>No application services captured.</p></div>';
+			}
+			const tableHtml = buildSimpleHtmlTable(['Application Service', 'Description', 'Functions', 'Processes'], rows);
+			return '<div class="word-export-content">' + tableHtml + '</div>';
+		}
+		if (tabId === 'appTech') {
+			const sections = [];
+			const dbRows = (((focusApp &amp;&amp; focusApp.db) || []).map((d) => [
+				toDisplayValue(d.infoRep || d.name || d.infoRepName || d.id)
+			])).filter((r) => r[0]);
+			if (dbRows.length) {
+				sections.push('<h2>Databases</h2>' + buildSimpleHtmlTable(['Database'], dbRows));
+			}
+
+			const techRows = [];
+			(((focusApp &amp;&amp; focusApp.applicationTechnology &amp;&amp; focusApp.applicationTechnology.environments) || [])).forEach((env) => {
+				const envName = toDisplayValue(env.name || 'Environment');
+				(env.products || []).forEach((p) => {
+					const product = toDisplayValue(p.prodname || p.name || p);
+					const role = toDisplayValue(p.compname || '');
+					techRows.push([
+						envName,
+						role ? (product + ' - ' + role) : product
+					]);
+				});
+			});
+			if (techRows.length) {
+				sections.push('<h3>Technology by Environment</h3>' + buildSimpleHtmlTable(['Environment', 'Product - Role'], techRows));
+			}
+
+			if (!sections.length) {
+				return '<div class="word-export-content"><p>No application technology captured.</p></div>';
+			}
+			return '<div class="word-export-content">' + sections.join('') + '</div>';
+		}
+		if (tabId === 'appdata') {
+			const rows = [];
+			(((focusApp &amp;&amp; focusApp.thisAppArray) || [])).forEach((obj) => {
+				const objectName = toDisplayValue(obj.dataObject || obj.name || obj.id || '');
+				(obj.values || []).forEach((v) => {
+					rows.push([
+						objectName,
+						toDisplayValue(v.nameirep || v.irInfo || v.idirep || ''),
+						normalizeCrudValue(v.create),
+						normalizeCrudValue(v.read),
+						normalizeCrudValue(v.update),
+						normalizeCrudValue(v.delete)
+					]);
+				});
+			});
+			const filteredRows = rows.filter((r) => r[0] || r[1]);
+			if (!filteredRows.length) {
+				return '<div class="word-export-content"><p>No application data captured.</p></div>';
+			}
+			const tableHtml = buildSimpleHtmlTable(['Data Object', 'Information Representation', 'Create', 'Read', 'Update', 'Delete'], filteredRows);
+			return '<div class="word-export-content">' + tableHtml + '</div>';
+		}
+
+		if (!clonePane) {
+			return '';
+		}
+		return sanitizeCloneForWordHtml(clonePane, tabLabel);
+	}
+
+	function collectDocxBlocksFromClone(clonePane, api, tabId, tabLabel){
+		const structuredModel = buildExportModelForTab(tabId, focusApp || {});
+		if (structuredModel) {
+			const structuredBlocks = renderDocxFromExportModel(api, structuredModel, tabLabel || tabId);
+			if (structuredBlocks.length) {
+				if (tabId === 'appcosts') {
+					const chartImages = getDataImagesFromClone(clonePane, 6);
+					if (chartImages.length) {
+						structuredBlocks.push(new api.Paragraph({
+							text: 'Charts',
+							heading: api.HeadingLevel.HEADING_2,
+							spacing: { before: 180, after: 90 }
+						}));
+						chartImages.forEach((img) => {
+							const imgData = dataUrlToUint8Array(img.src);
+							if (!imgData) {
+								return;
+							}
+							const targetWidth = 300;
+							const srcW = img.width || 620;
+							const srcH = img.height || 350;
+							const safeW = Math.max(srcW, 1);
+							const targetHeight = Math.max(90, Math.round((srcH / safeW) * targetWidth));
+							structuredBlocks.push(new api.Paragraph({
+								alignment: api.AlignmentType.CENTER,
+								children: [new api.ImageRun({ data: imgData, transformation: { width: targetWidth, height: targetHeight } })]
+							}));
+							structuredBlocks.push(new api.Paragraph({ text: '', spacing: { after: 180 } }));
+						});
+					}
+				}
+				return structuredBlocks;
+			}
+		}
+		const blocks = [];
+		const tabSpecific = [];
+		if (tabId === 'details') {
+			extractDetailsBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'appTech') {
+			extractTechnologyBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'appservices') {
+			extractServicesBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'buscaps') {
+			extractCapabilityBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'appClassifications') {
+			extractClassificationsBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'appProcesses') {
+			extractBusinessProcessBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'appIntegration') {
+			extractIntegrationBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'appcosts') {
+			extractCostBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'appKpis') {
+			extractKpiBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'appPlans') {
+			extractPlansBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'appdata') {
+			extractAppDataBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabId === 'otherEnums') {
+			extractOtherEnumBlocksFromData(api, focusApp || {}).forEach((b) => tabSpecific.push(b));
+		}
+		if (tabSpecific.length) {
+			return tabSpecific;
+		}
+
+		const elements = clonePane.querySelectorAll('h2, h3, h4, p, li, table, img');
+		let lastText = null;
+		const capturedText = [];
+
+		elements.forEach((el) => {
+			if (el.closest('table') &amp;&amp; el.tagName !== 'TABLE') {
+				return;
+			}
+
+			if (el.tagName === 'TABLE') {
+				const table = htmlTableToDocxTable(el, api);
+				if (table) {
+					blocks.push(table);
+					blocks.push(new api.Paragraph({ text: '', spacing: { after: 220 } }));
+				}
+				return;
+			}
+
+			if (el.tagName === 'IMG') {
+				if (tabId === 'appIntegration') {
+					return;
+				}
+				const src = el.getAttribute('src') || '';
+				const imgData = dataUrlToUint8Array(src);
+				if (!imgData) {
+					return;
+				}
+				const srcW = parseInt(el.getAttribute('width') || '', 10) || parseInt(el.style.width || '', 10) || 900;
+				const srcH = parseInt(el.getAttribute('height') || '', 10) || parseInt(el.style.height || '', 10) || 480;
+				const width = Math.min(620, Math.max(200, srcW));
+				const height = Math.max(120, Math.round((srcH / Math.max(srcW, 1)) * width));
+				blocks.push(new api.Paragraph({
+					alignment: api.AlignmentType.CENTER,
+					children: [new api.ImageRun({ data: imgData, transformation: { width: width, height: height } })]
+				}));
+				blocks.push(new api.Paragraph({ text: '', spacing: { after: 260 } }));
+				return;
+			}
+
+			const text = normalizeWordExportText(el.textContent);
+			if (!text || (text === lastText &amp;&amp; text.length > 24)) {
+				return;
+			}
+			lastText = text;
+			capturedText.push(text.toLowerCase());
+
+			if (el.tagName === 'H2') {
+				blocks.push(new api.Paragraph({
+					children: [new api.TextRun({ text: text, bold: true, font: 'Century Gothic' })],
+					spacing: { before: 200, after: 100 }
+				}));
+				return;
+			}
+			if (el.tagName === 'H3') {
+				blocks.push(new api.Paragraph({
+					children: [new api.TextRun({ text: text, bold: true, font: 'Century Gothic' })],
+					spacing: { before: 160, after: 100 }
+				}));
+				return;
+			}
+			if (el.tagName === 'H4') {
+				blocks.push(new api.Paragraph({
+					children: [new api.TextRun({ text: text, bold: true, font: 'Century Gothic' })],
+					spacing: { before: 140, after: 80 }
+				}));
+				return;
+			}
+			if (el.tagName === 'LI') {
+				blocks.push(new api.Paragraph({
+					text: '- ' + text,
+					spacing: { after: 80 }
+				}));
+				return;
+			}
+			blocks.push(docxBodyParagraph(api, text));
+		});
+
+		const capturedSet = new Set(capturedText);
+		const fallbackLines = extractFallbackLinesFromClone(clonePane)
+			.filter((line) => !capturedSet.has(line.toLowerCase()));
+		const isTechnologyTab = tabId === 'appTech';
+		const shouldAddFallback = !isTechnologyTab &amp;&amp; (blocks.length &lt; 8 || fallbackLines.length > blocks.length * 2);
+		if (shouldAddFallback) {
+			fallbackLines.slice(0, 220).forEach((line) => {
+				blocks.push(docxBodyParagraph(api, line));
+			});
+		}
+
+		if (!blocks.length) {
+			blocks.push(docxBodyParagraph(api, 'No visible content.'));
+		}
+		return blocks;
+	}
+
+	async function exportSelectedTabsToDocx(selectedTabIds){
+		const api = window.docx;
+		if (!api || !api.Document || !api.Packer) {
+			throw new Error('docx library is not available');
+		}
+		const selectedIds = (selectedTabIds || []).filter((id) => !!id);
+		if (!selectedIds.length) {
+			alert('Select at least one tab to export.');
+			return;
+		}
+		const allTabs = getSummaryTabMetadata();
+		const labelsById = {};
+		allTabs.forEach((tab) => {
+			labelsById[tab.id] = tab.label;
+		});
+		const activeLink = document.querySelector('#summary-content .tabs-left li.active a[data-toggle="tab"]');
+		const previousHref = activeLink ? activeLink.getAttribute('href') : null;
+
+		const children = [];
+		children.push(new api.Paragraph({
+			text: (focusApp &amp;&amp; focusApp.name ? focusApp.name : 'Application Summary'),
+			heading: api.HeadingLevel.TITLE,
+			spacing: { after: 180 }
+		}));
+		children.push(new api.Paragraph({
+			spacing: { after: 280 },
+			children: [new api.TextRun({ text: 'Exported: ' + new Date().toLocaleString(), italics: true, color: '5B6875', font: 'Century Gothic' })]
+		}));
+
+		for (const tabId of selectedIds) {
+			const link = document.querySelector('#summary-content .tabs-left a[href="#' + tabId + '"]');
+			if (link &amp;&amp; typeof $(link).tab === 'function') {
+				$(link).tab('show');
+				await waitForWordExport(tabId === 'diagrams' ? 700 : 250);
+			}
+			const sourcePane = document.getElementById(tabId);
+			if (!sourcePane) {
+				continue;
+			}
+			const clonePane = await buildExportableClone(sourcePane, tabId);
+			if (!clonePane) {
+				continue;
+			}
+			children.push(new api.Paragraph({
+				text: labelsById[tabId] || tabId,
+				heading: api.HeadingLevel.HEADING_1,
+				spacing: { before: 320, after: 140 },
+				thematicBreak: true
+			}));
+			const blocks = collectDocxBlocksFromClone(clonePane, api, tabId, labelsById[tabId] || tabId);
+			blocks.forEach((block) => children.push(block));
+		}
+
+		if (previousHref) {
+			const previousLink = document.querySelector('#summary-content .tabs-left a[href="' + previousHref + '"]');
+			if (previousLink &amp;&amp; typeof $(previousLink).tab === 'function') {
+				$(previousLink).tab('show');
+			}
+		}
+
+		if (children.length &lt;= 2) {
+			alert('No selected tab content could be exported.');
+			return;
+		}
+
+		const doc = new api.Document({
+			styles: {
+				default: {
+					document: {
+						run: {
+							font: 'Century Gothic'
+						}
+					}
+				}
+			},
+			sections: [{
+				properties: {},
+				children: children
+			}]
+		});
+		const blob = await api.Packer.toBlob(doc);
+		saveAs(blob, getWordExportFileName('docx'));
+	}
+
+	async function exportSelectedTabsToHtmlWord(selectedTabIds){
+		const selectedIds = (selectedTabIds || []).filter((id) => !!id);
+		if (!selectedIds.length) {
+			alert('Select at least one tab to export.');
+			return;
+		}
+
+		const allTabs = getSummaryTabMetadata();
+		const labelsById = {};
+		allTabs.forEach((tab) => {
+			labelsById[tab.id] = tab.label;
+		});
+		const activeLink = document.querySelector('#summary-content .tabs-left li.active a[data-toggle="tab"]');
+		const previousHref = activeLink ? activeLink.getAttribute('href') : null;
+		const sections = [];
+
+		for (const tabId of selectedIds) {
+			const link = document.querySelector('#summary-content .tabs-left a[href="#' + tabId + '"]');
+			if (link &amp;&amp; typeof $(link).tab === 'function') {
+				$(link).tab('show');
+				await waitForWordExport(tabId === 'diagrams' ? 700 : 250);
+			}
+			const sourcePane = document.getElementById(tabId);
+			if (!sourcePane) {
+				continue;
+			}
+			const clonePane = await buildExportableClone(sourcePane, tabId);
+			if (!clonePane) {
+				continue;
+			}
+			const tabLabel = escapeWordExportHtml(labelsById[tabId] || tabId);
+			const bodyHtml = buildWordFriendlyHtmlForTab(tabId, clonePane, tabLabel);
+			sections.push('<section class="word-export-section"><h1 class="word-export-title">' + tabLabel + '</h1>' + bodyHtml + '</section>');
+		}
+
+		if (previousHref) {
+			const previousLink = document.querySelector('#summary-content .tabs-left a[href="' + previousHref + '"]');
+			if (previousLink &amp;&amp; typeof $(previousLink).tab === 'function') {
+				$(previousLink).tab('show');
+			}
+		}
+
+		if (!sections.length) {
+			alert('No selected tab content could be exported.');
+			return;
+		}
+
+		const html = '&lt;html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+			'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"&gt;' +
+			'&lt;head&gt;&lt;meta charset="utf-8"/&gt;&lt;title&gt;Application Summary Export&lt;/title&gt;&lt;style&gt;' + getWordExportCss() + '&lt;/style&gt;&lt;/head&gt;' +
+			'&lt;body&gt;' + sections.join('') + '&lt;/body&gt;&lt;/html&gt;';
+		const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+		saveAs(blob, getWordExportFileName('doc'));
+	}
+
+	$('#getWord').off('click.wordExport').on('click.wordExport', function(){
+		populateWordExportTabPicker();
+		$('#wordExportTabModal').modal('show');
+	});
+
+	$('#confirmWordExport').off('click.wordExport').on('click.wordExport', async function(){
+		const button = $(this);
+		const selectedTabIds = $('.word-export-tab-checkbox:checked').map(function(){
+			return this.value;
+		}).get();
+		button.prop('disabled', true).text('Exporting...');
+		try {
+			$('#wordExportTabModal').modal('hide');
+			if (window.docx &amp;&amp; window.docx.Document &amp;&amp; window.docx.Packer) {
+				await exportSelectedTabsToDocx(selectedTabIds);
+			} else {
+				await exportSelectedTabsToHtmlWord(selectedTabIds);
+			}
+		} catch (e) {
+			console.error('DOCX export failed, falling back to HTML Word export', e);
+			try {
+				await exportSelectedTabsToHtmlWord(selectedTabIds);
+			} catch (innerErr) {
+				console.error('HTML Word export failed, falling back to legacy data export', innerErr);
+				getWord(focusApp);
+			}
+		} finally {
+			button.prop('disabled', false).text('Export Selected Tabs');
+		}
+	});
+
+
 	var getXML = function promise_getExcelXML(excelXML_URL) {
 		return new Promise(
 		function (resolve, reject) {

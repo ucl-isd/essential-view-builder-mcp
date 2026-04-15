@@ -1,0 +1,52 @@
+<svg width="600" height="600" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="node_top" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF" />
+      <stop offset="100%" style="stop-color:#E8EAED" />
+    </linearGradient>
+    
+    <linearGradient id="node_side" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#BDC1C6" />
+      <stop offset="100%" style="stop-color:#9AA0A6" />
+    </linearGradient>
+
+    <filter id="interconnect_glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+ 
+  <g transform="translate(120, 180) scale(0.85)">
+    <path d="M150 100 L250 50 L150 0 L50 50 Z" fill="url(#node_top)" />
+    <path d="M150 100 L250 50 V120 L150 170 Z" fill="#9AA0A6" />
+    <path d="M150 100 L50 50 V120 L150 170 Z" fill="#80868B" />
+  </g>
+
+  <g transform="translate(280, 180) scale(0.85)">
+    <path d="M150 100 L250 50 L150 0 L50 50 Z" fill="url(#node_top)" />
+    <path d="M150 100 L250 50 V120 L150 170 Z" fill="#9AA0A6" />
+    <path d="M150 100 L50 50 V120 L150 170 Z" fill="#80868B" />
+  </g>
+
+  <g transform="translate(200, 260)">
+    <path d="M150 100 L250 50 L150 0 L50 50 Z" fill="url(#node_top)" />
+    <path d="M150 100 L250 50 V120 L150 170 Z" fill="#BDC1C6" />
+    <path d="M150 100 L50 50 V120 L150 170 Z" fill="#9AA0A6" />
+    
+    <circle cx="150" cy="115" r="4" fill="#34A853" filter="url(#interconnect_glow)">
+      <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
+    </circle>
+  </g>
+
+  <g fill="none" stroke="#4285F4" stroke-width="2" stroke-dasharray="4,8" opacity="0.4">
+    <path d="M220 230 Q300 180 380 230">
+      <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite" />
+    </path>
+    <path d="M300 310 Q300 250 300 210" stroke="#34A853">
+      <animate attributeName="stroke-dashoffset" from="0" to="24" dur="1.5s" repeatCount="indefinite" />
+    </path>
+  </g>
+</svg>

@@ -143,6 +143,15 @@ container.appendChild(div);
 container.innerHTML = '&lt;div class="status"&gt;' + name + '&lt;/div&gt;';
 ```
 
+### Transitive Includes & Security
+
+*   **`viewer_security.xsl`**: DO NOT manually include or import this file. It is transitively included via `core_header.xsl` -> `core_utilities.xsl`. Manual inclusion will cause a "module included more than once" warning.
+
+### FORBIDDEN Elements
+
+*   **`core_modal_reports.xsl`**: This file is **DEPRECATED** and should **NEVER** be included or imported in modern views.
+*   **`RenderModalReportContent`**: This template call is **FORBIDDEN**. Do not use it. If you need modal functionality, use standard Bootstrap modals or modern UI components.
+
 ---
 
 ## Pre-Submit Checklist
@@ -180,6 +189,8 @@ Before handing over any XSL view, verify every item:
 - [ ] `<xsl:include href="../common/core_footer.xsl"/>`
 - [ ] `<xsl:include href="../common/core_external_doc_ref.xsl"/>`
 - [ ] `<xsl:include href="../common/core_api_fetcher.xsl"/>` — **not transitively included, must be explicit**
+- [ ] NO manual inclusion/import of `viewer_security.xsl` (already provided via `core_header.xsl`)
+- [ ] NO use of `core_modal_reports.xsl` or `RenderModalReportContent` (FORBIDDEN)
 
 ---
 

@@ -48,18 +48,23 @@
 
 
 	<!-- START GENERIC CATALOGUE SETUP VARIABES -->
-	<xsl:variable name="targetReport" select="/node()/simple_instance[name = $targetReportId]"/>
+	<xsl:variable name="targetReport" select="/knowledge_base/simple_instance[name = $targetReportId]"/>
 	<xsl:variable name="targetMenu" select="eas:get_menu_by_shortname($targetMenuShortName)"/>
 	<xsl:variable name="viewScopeTerms" select="eas:get_scoping_terms_from_string($viewScopeTermIds)"/>
 	<xsl:variable name="linkClasses" select="('Application_Service', 'Composite_Application_Service')"/>
 	<!-- END GENERIC CATALOGUE SETUP VARIABES -->
 
 	<!-- Get all of the Application Services in the repository -->
-	<xsl:variable name="allAppServices" select="/node()/simple_instance[type = 'Application_Service' or type = 'Composite_Application_Service']"/>
+	<xsl:variable name="allAppServices" select="/knowledge_base/simple_instance[type = 'Application_Service' or type = 'Composite_Application_Service']"/>
 
 	<xsl:variable name="appSvcListAsTableCatalogue" select="eas:get_report_by_name('Core: Application Service Catalogue as Table')"/>
 
 	<xsl:template match="knowledge_base">
+		<xsl:message>
+			=======================================================
+			[PERF] STARTED core_al_app_service_list_by_name.xsl at <xsl:value-of select="current-dateTime()"/>
+			=======================================================
+		</xsl:message>
 		<!-- SET THE STANDARD VARIABLES THAT ARE REQUIRED FOR THE VIEW -->
 		<xsl:choose>
 			<xsl:when test="string-length($viewScopeTermIds) > 0">

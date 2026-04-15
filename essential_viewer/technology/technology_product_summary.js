@@ -367,26 +367,26 @@ $('document').ready(function () {
             })
         });
 
-// get any plans where no project exists but the tech is mapped
-            plans.allPlans.forEach((p) => {
-                p.planP2E?.forEach((pe) => {
-                    pe['name'] = p.name;
-                    pe['id'] = p.id;
-                    planElementMap.push(pe)
+        // get any plans where no project exists but the tech is mapped
+        plans.allPlans.forEach((p) => {
+            p.planP2E?.forEach((pe) => {
+                pe['name'] = p.name;
+                pe['id'] = p.id;
+                planElementMap.push(pe)
 
-                    let clrs = plans.styles.find((s) => {
-                        return s.id == pe.actionid;
-                    });
-                    if (clrs) {
-                        pe['colour'] = clrs.colour;
-                        pe['textColour'] = clrs.textColour;
-                    }
-                    else {
-                        pe['colour'] = '#d3d3d3';
-                        pe['textColour'] = '#000000';
-                    }
-                })
-            });
+                let clrs = plans.styles.find((s) => {
+                    return s.id == pe.actionid;
+                });
+                if (clrs) {
+                    pe['colour'] = clrs.colour;
+                    pe['textColour'] = clrs.textColour;
+                }
+                else {
+                    pe['colour'] = '#d3d3d3';
+                    pe['textColour'] = '#000000';
+                }
+            })
+        });
 
 
         //end of plans
@@ -546,6 +546,9 @@ $('document').ready(function () {
                     }
                     if (dateEntry.type === 'Vendor_Lifecycle_Status') {
                         delete product.vendor_product_lifecycle_status;
+                    }
+                    if (dateEntry.type === 'Disposition_Lifecycle_Status') {
+                        delete product.tl_disposition_lifecycle_status;
                     }
 
                     const styleEntry = lifecycleStyleMap.has(dateEntry.id) ? lifecycleStyleMap.get(dateEntry.id) : null;

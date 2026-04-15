@@ -882,7 +882,7 @@
             <script>
 				$('#viewpoint-bar').hide();
                 var impactedElements=[<xsl:apply-templates select="$impactedElements" mode="impacts"/>];
- 
+
 var impactTemplate;
 var thisId='<xsl:value-of select="$param1"/>';
 var strategicPlanCostData = [
@@ -1427,6 +1427,21 @@ function initCostsDashboard() {
 }
  
 $(document).ready(function(){
+    $('.localise-date').each(function() {
+        const isoDate = $(this).attr('data-isodate');
+        if (isoDate) {
+            if (isoDate.trim() !== "") {
+                try {
+                    const date = new Date(isoDate);
+                    const locale = navigator.language || 'en-GB';
+                    const formatted = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(date);
+                    $(this).text(formatted);
+                } catch (e) {
+                    // gracefully fall back
+                }
+            }
+        }
+    });
     var impactsFragment = $("#impacts-template").html();
     impactTemplate = Handlebars.compile(impactsFragment);
 
@@ -1442,30 +1457,13 @@ $(document).ready(function(){
         if (arg1) {
             // Create a new Date object from the ISO date string
             const date = new Date(arg1);
-    
-            // Function to get the day with suffix
-            function getDayWithSuffix(day) {
-                const j = day % 10,
-                      k = day % 100;
-                if (j == 1 &amp;&amp; k != 11) {
-                    return day + "st";
-                }
-                if (j == 2 &amp;&amp; k != 12) {
-                    return day + "nd";
-                }
-                if (j == 3 &amp;&amp; k != 13) {
-                    return day + "rd";
-                }
-                return day + "th";
+            const locale = navigator.language || 'en-GB';
+            
+            try {
+                return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(date);
+            } catch (error) {
+                return date.toISOString().slice(0, 10);
             }
-    
-            // Get the day, month and year
-            const day = date.getDate();
-            const month = date.toLocaleString('en-GB', { month: 'long' });
-            const year = date.getFullYear().toString(); // last 2 digits of year
-    
-            // Format the date in dd MonthName YY with suffix
-            return `${getDayWithSuffix(day)} ${month} ${year}`;
         } else {
             return 'Not Set';
         }
@@ -2356,9 +2354,11 @@ document.querySelectorAll('.objcard').forEach(card => {
                               
                                         <xsl:choose>
                                             <xsl:when test="(count($project/own_slot_value[slot_reference = 'ca_proposed_start_date']/value) > 0) or (count($plannedISOStartDate) > 0)">
+                                                <span class="localise-date" data-isodate="{$jsPlannedStartDate}">
                                                 <xsl:call-template name="FullFormatDate">
                                                     <xsl:with-param name="theDate" select="$jsPlannedStartDate"/>
                                                 </xsl:call-template>
+                                                </span>
                                             </xsl:when>
                                             <xsl:otherwise>
                                                 <em>undefined</em>
@@ -2371,9 +2371,11 @@ document.querySelectorAll('.objcard').forEach(card => {
                                     <div class="dateColumn">
                                         <xsl:choose>
                                             <xsl:when test="(count($project/own_slot_value[slot_reference = 'ca_actual_start_date']/value) > 0) or (count($actualISOStartDate) > 0)">
+                                                <span class="localise-date" data-isodate="{$jsActualStartDate}">
                                                 <xsl:call-template name="FullFormatDate">
                                                     <xsl:with-param name="theDate" select="$jsActualStartDate"/>
                                                 </xsl:call-template>
+                                                </span>
                                             </xsl:when>
                                             <xsl:otherwise>
                                                 <em>undefined</em>
@@ -2386,9 +2388,11 @@ document.querySelectorAll('.objcard').forEach(card => {
                                     <div class="dateColumn">
                                         <xsl:choose>
                                             <xsl:when test="(count($project/own_slot_value[slot_reference = 'ca_target_end_date']/value) > 0) or (count($targetEndISOStartDate) > 0)">
+                                                <span class="localise-date" data-isodate="{$jsTargetEndDate}">
                                                 <xsl:call-template name="FullFormatDate">
                                                     <xsl:with-param name="theDate" select="$jsTargetEndDate"/>
                                                 </xsl:call-template>
+                                                </span>
                                             </xsl:when>
                                             <xsl:otherwise>
                                                 <em>
@@ -2403,9 +2407,11 @@ document.querySelectorAll('.objcard').forEach(card => {
                                     <div class="dateColumn">
                                         <xsl:choose>
                                             <xsl:when test="(count($project/own_slot_value[slot_reference = 'ca_forecast_end_date']/value) > 0) or (count($forecastEndISOStartDate) > 0)">
+                                                <span class="localise-date" data-isodate="{$jsForecastEndDate}">
                                                 <xsl:call-template name="FullFormatDate">
                                                     <xsl:with-param name="theDate" select="$jsForecastEndDate"/>
                                                 </xsl:call-template>
+                                                </span>
                                             </xsl:when>
                                             <xsl:otherwise>
                                                 <em>
@@ -2717,9 +2723,11 @@ document.querySelectorAll('.objcard').forEach(card => {
                             <em>Undefined</em>
                         </xsl:when>
                         <xsl:otherwise>
+                            <span class="localise-date" data-isodate="{$jsThisPlanStartDate}">
                             <xsl:call-template name="FullFormatDate">
                                 <xsl:with-param name="theDate" select="$jsThisPlanStartDate"/>
                             </xsl:call-template>
+                            </span>
                         </xsl:otherwise>
                     </xsl:choose>
                 </div>
@@ -2731,9 +2739,11 @@ document.querySelectorAll('.objcard').forEach(card => {
                             <em>Undefined</em>
                         </xsl:when>
                         <xsl:otherwise>
+                            <span class="localise-date" data-isodate="{$jsThisPlanEndDate}">
                             <xsl:call-template name="FullFormatDate">
                                 <xsl:with-param name="theDate" select="$jsThisPlanEndDate"/>
                             </xsl:call-template>
+                            </span>
                         </xsl:otherwise>
                     </xsl:choose>
                 </div>
@@ -2783,7 +2793,8 @@ document.querySelectorAll('.objcard').forEach(card => {
         <xsl:with-param name="layerLabels" select="$layerLabels"/>
     </xsl:call-template>
 -->
-<xsl:variable name="elementDesc" select="$thisStrategicPlanRels/own_slot_value[slot_reference = 'relation_description']/value"/>
+<xsl:variable name="elementDesc" select="$thisStrategicPlanRels[1]/own_slot_value[slot_reference = 'relation_description']/value"/>
+
 <xsl:choose>
 	<xsl:when test="count($action)>1">
 		<xsl:variable name="main" select="current()"/>
@@ -2794,11 +2805,14 @@ document.querySelectorAll('.objcard').forEach(card => {
 			</xsl:call-template>
 		</xsl:variable>
 		{
-			"id":"<xsl:value-of select="eas:getSafeJSString($main/name)"/>",
-			"description":"<xsl:value-of select="eas:getSafeJSString(translate(translate($main/own_slot_value[slot_reference = 'relation_description']/value, '}', ')'), '{', ')'))"/>",
-			"name":"<xsl:value-of select="eas:getSafeJSString($main/own_slot_value[slot_reference = 'name']/value)"/>",
+			"id":"<xsl:value-of select="eas:getSafeJSString($main/name)"/>",  
+			<xsl:variable name="enMap" as="map(*)" select="map{
+            'name': string(translate(translate($main/own_slot_value[slot_reference = 'name']/value, '}', ')'), '{', ')')),
+            'description': string(translate(translate($main/own_slot_value[slot_reference = 'relation_description']/value, '}', ')'), '{', ')'))
+        }"/>
+        <xsl:value-of select="substring-before(substring-after(serialize($enMap, map{'method': 'json'}),'{'),'}')"/>, 
 			"type":"<xsl:value-of select="eas:getSafeJSString($main/type)"/>",
-		    "action":"<xsl:value-of select="eas:getSafeJSString(normalize-space($actionLabel))"/>" 
+		    "action":"<xsl:value-of select="eas:getSafeJSString(normalize-space($actionLabel))"/>", 
 		
 		}<xsl:if test="position()!=last()">,</xsl:if>
 		</xsl:for-each>
@@ -2811,12 +2825,15 @@ document.querySelectorAll('.objcard').forEach(card => {
 		</xsl:variable>
 		{
 			"id":"<xsl:value-of select="eas:getSafeJSString(current()/name)"/>",
-			"description":"<xsl:value-of select="eas:getSafeJSString(translate(translate($elementDesc, '}', ')'), '{', ')'))"/>",
-			"name":"<xsl:value-of select="eas:getSafeJSString(current()/own_slot_value[slot_reference = 'name']/value)"/>",
-			"type":"<xsl:value-of select="eas:getSafeJSString(current()/type)"/>",
-		    "action":"<xsl:value-of select="eas:getSafeJSString(normalize-space($actionLabel))"/>" 
-		
-		} 
+ 			<xsl:variable name="enMap" as="map(*)" select="map{
+            'name': string(translate(translate(current()/own_slot_value[slot_reference = 'name']/value, '}', ')'), '{', ')')),
+            'description': string(translate(translate($elementDesc, '}', ')'), '{', ')'))
+        }"/>
+        <xsl:value-of select="substring-before(substring-after(serialize($enMap, map{'method': 'json'}),'{'),'}')"/>, 
+ 
+		"type":"<xsl:value-of select="eas:getSafeJSString(current()/type)"/>",
+		"action":"<xsl:value-of select="eas:getSafeJSString(normalize-space($actionLabel))"/>" 
+		}
 	</xsl:otherwise>
 	</xsl:choose>	
 	<xsl:if test="position()!=last()">,</xsl:if>
