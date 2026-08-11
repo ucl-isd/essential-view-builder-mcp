@@ -35,56 +35,61 @@
                 </xsl:call-template>
                 <title>Strategic Plans Cost Explorer</title>
                 <style>
-                    .view-wrapper{padding:20px;max-width:1600px;margin:80px auto 0 auto}
+                    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&amp;display=swap');
+                    .view-wrapper{padding:20px;max-width:1600px;margin:80px auto 0 auto;font-family:'DM Sans',sans-serif;color:#111827;font-size:1.2rem}
                     .filters-bar{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
-                    .filters-bar select{padding:6px 12px;border-radius:4px;border:1px solid #ccc;min-width:180px}
-                    .filters-bar label{font-weight:600;margin-right:5px}
-                    .roadmap-container{position:relative;overflow-x:auto;margin-bottom:30px;border:1px solid #e0e0e0;border-radius:8px;padding:20px;background:#fafafa}
-                    .timeline-header{display:flex;border-bottom:2px solid #ccc;padding-bottom:8px;margin-bottom:10px;position:sticky;top:0;background:#fafafa;z-index:2}
-                    .timeline-label{width:220px;font-weight:700;flex-shrink:0}
-                    .timeline-cost-header{width:80px;font-weight:700;flex-shrink:0;text-align:right;padding-right:10px}
-                    .timeline-scale{flex:1;display:flex;justify-content:space-between;font-size:11px;color:#666}
+                    .filters-bar select{padding:8px 14px;border-radius:4px;border:1px solid #E5E7EB;min-width:180px;font-family:'DM Sans',sans-serif;font-size:1.05rem}
+                    .filters-bar label{font-weight:600;margin-right:5px;color:#4B5563}
+                    .roadmap-container{position:relative;overflow-x:auto;margin-bottom:30px;border:1px solid #E5E7EB;border-radius:8px;padding:20px;background:#FFFFFF}
+                    .timeline-header{display:flex;border-bottom:2px solid #D1D5DB;padding-bottom:8px;margin-bottom:10px;position:sticky;top:0;background:#FFFFFF;z-index:2}
+                    .timeline-label{width:440px;font-weight:700;flex-shrink:0;color:#361A54}
+                    .timeline-cost-header{width:90px;font-weight:700;flex-shrink:0;text-align:right;padding-right:10px;color:#361A54}
+                    .timeline-scale{flex:1;display:flex;justify-content:space-between;font-size:1rem;color:#6B7280}
                     .plan-row{display:flex;align-items:center;margin-bottom:8px;min-height:44px}
-                    .plan-name{width:220px;font-size:12px;font-weight:500;flex-shrink:0;padding-right:10px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-                    .plan-cost{width:80px;font-size:12px;font-weight:600;flex-shrink:0;text-align:right;padding-right:10px;color:#2e7d32}
+                    .plan-name{width:440px;font-size:1.2rem;font-weight:500;flex-shrink:0;padding-right:10px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+                    .plan-cost{width:90px;font-size:1.2rem;font-weight:600;flex-shrink:0;text-align:right;padding-right:10px;color:#993AFF}
                     .plan-bar-container{flex:1;position:relative;height:28px}
                     .plan-bar{position:absolute;height:24px;border-radius:4px;cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:11px;color:#fff;font-weight:500;transition:opacity 0.2s,transform 0.1s;top:2px}
                     .plan-bar:hover{opacity:0.85;transform:scaleY(1.1)}
-                    .plan-bar.status-idea{background:#5b9bd5}
-                    .plan-bar.status-discovery{background:#ed7d31}
-                    .plan-bar.status-governance{background:#9b59b6}
-                    .plan-bar.status-delivery{background:#70ad47}
-                    .plan-bar.status-default{background:#bdc3c7}
+                    .plan-bar.status-idea{background:#B982FF}
+                    .plan-bar.status-discovery{background:#F59E0B}
+                    .plan-bar.status-governance{background:#993AFF}
+                    .plan-bar.status-delivery{background:#1AAB40}
+                    .plan-bar.status-default{background:#9CA3AF}
                     .detail-panel{position:fixed;top:0;right:-500px;width:500px;height:100vh;background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,0.15);z-index:1000;transition:right 0.3s ease;overflow-y:auto;padding:30px}
                     .detail-panel.open{right:0}
-                    .detail-panel .close-btn{position:absolute;top:15px;right:15px;font-size:24px;cursor:pointer;color:#666;background:none;border:none}
-                    .detail-panel h3{margin-top:0;padding-right:40px;color:#333;border-bottom:2px solid #2e7d32;padding-bottom:10px}
+                    .detail-panel .close-btn{position:absolute;top:15px;right:15px;font-size:24px;cursor:pointer;color:#6B7280;background:none;border:none}
+                    .detail-panel h3{margin-top:0;padding-right:40px;color:#361A54;border-bottom:2px solid #993AFF;padding-bottom:10px;font-weight:700}
                     .detail-section{margin-bottom:20px}
-                    .detail-section h4{color:#555;margin-bottom:8px;font-size:14px}
+                    .detail-section h4{color:#4B5563;margin-bottom:8px;font-size:1.1rem;font-weight:600}
                     .detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px}
-                    .detail-meta .meta-item{background:#f5f5f5;padding:8px 12px;border-radius:4px}
-                    .detail-meta .meta-label{font-size:11px;color:#888;text-transform:uppercase}
-                    .detail-meta .meta-value{font-size:14px;font-weight:600;color:#333}
-                    .total-cost-banner{background:#e8f5e9;border:2px solid #2e7d32;border-radius:8px;padding:15px 20px;margin-bottom:20px;text-align:center}
-                    .total-cost-banner .cost-amount{font-size:28px;font-weight:700;color:#2e7d32}
-                    .total-cost-banner .cost-label{font-size:12px;color:#666;margin-top:4px}
-                    .cost-table{width:100%;border-collapse:collapse;font-size:13px}
-                    .cost-table th{background:#e8f5e9;padding:8px;text-align:left;border-bottom:2px solid #2e7d32}
-                    .cost-table td{padding:8px;border-bottom:1px solid #eee}
-                    .cost-table tr:hover{background:#f5f5f5}
-                    .perf-table{width:100%;border-collapse:collapse;font-size:13px}
-                    .perf-table th{background:#f0f0f0;padding:8px;text-align:left;border-bottom:1px solid #ddd}
-                    .perf-table td{padding:8px;border-bottom:1px solid #eee}
+                    .detail-meta .meta-item{background:#F3F4F6;padding:10px 14px;border-radius:4px}
+                    .detail-meta .meta-label{font-size:0.95rem;color:#6B7280;text-transform:uppercase;font-weight:500}
+                    .detail-meta .meta-value{font-size:1.1rem;font-weight:600;color:#111827}
+                    .total-cost-banner{background:#F5F0FF;border:2px solid #993AFF;border-radius:8px;padding:18px 24px;margin-bottom:20px;text-align:center}
+                    .total-cost-banner .cost-amount{font-size:2.5rem;font-weight:700;color:#361A54}
+                    .total-cost-banner .cost-label{font-size:0.95rem;color:#6B7280;margin-top:4px}
+                    .cost-table{width:100%;border-collapse:collapse;font-size:1.05rem}
+                    .cost-table th{background:#F5F0FF;padding:12px;text-align:left;border-bottom:2px solid #993AFF;color:#361A54;font-weight:600}
+                    .cost-table td{padding:12px;border-bottom:1px solid #E5E7EB}
+                    .cost-table tr:hover{background:#F9FAFB}
+                    .perf-table{width:100%;border-collapse:collapse;font-size:1.05rem}
+                    .perf-table th{background:#F3F4F6;padding:12px;text-align:left;border-bottom:1px solid #D1D5DB;font-weight:600}
+                    .perf-table td{padding:12px;border-bottom:1px solid #E5E7EB}
                     .legend{display:flex;gap:15px;margin-bottom:15px;flex-wrap:wrap}
-                    .legend-item{display:flex;align-items:center;gap:5px;font-size:12px}
+                    .legend-item{display:flex;align-items:center;gap:5px;font-size:1rem;color:#4B5563}
                     .legend-swatch{width:16px;height:16px;border-radius:3px}
                     .summary-cards{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap}
-                    .summary-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:15px 20px;min-width:140px;text-align:center}
-                    .summary-card .count{font-size:28px;font-weight:700;color:#2e7d32}
-                    .summary-card .label{font-size:12px;color:#666;margin-top:4px}
+                    .summary-card{background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px;padding:15px 20px;min-width:140px;text-align:center}
+                    .summary-card .count{font-size:2.5rem;font-weight:700;color:#361A54}
+                    .summary-card .label{font-size:0.95rem;color:#6B7280;margin-top:4px}
                     .overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:999;display:none}
                     .overlay.open{display:block}
-                    .no-data{text-align:center;padding:40px;color:#999;font-size:16px}
+                    .no-data{text-align:center;padding:40px;color:#6B7280;font-size:1rem}
+                    .annual-costs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+                    .annual-cost-item{background:#F5F0FF;border:1px solid #DDBDFF;border-radius:6px;padding:10px 14px;text-align:center;min-width:100px;flex:1}
+                    .annual-cost-item .annual-label{font-size:0.95rem;color:#6B7280;text-transform:uppercase;font-weight:600;margin-bottom:2px}
+                    .annual-cost-item .annual-value{font-size:1.4rem;font-weight:700;color:#361A54}
                 </style>
                 <script type="text/javascript">
                     <xsl:call-template name="RenderViewerAPIJSFunction"/>
@@ -93,6 +98,7 @@
                     var allRoadmaps = [];
                     var selectedRoadmapFilter = 'all';
                     var selectedPriorityFilter = 'all';
+                    var selectedCostFilter = 'all';
                     var currency = '&#xA3;';
 
                     // Embedded plan costs from XSL - queried directly from Cost/Cost_Component instances
@@ -209,6 +215,11 @@
                             selectedPriorityFilter = this.value;
                             renderView();
                         });
+                        var costSelect = document.getElementById('filterCosts');
+                        costSelect.addEventListener('change', function() {
+                            selectedCostFilter = this.value;
+                            renderView();
+                        });
                     }
 
                     function getPlansForRoadmap(roadmapId) {
@@ -228,6 +239,15 @@
                         if (selectedPriorityFilter !== 'all') {
                             filtered = filtered.filter(function(plan) {
                                 return getPlanPriority(plan.id) === selectedPriorityFilter;
+                            });
+                        }
+                        if (selectedCostFilter === 'with') {
+                            filtered = filtered.filter(function(plan) {
+                                return getPlanTotalCost(plan.id) &gt; 0;
+                            });
+                        } else if (selectedCostFilter === 'without') {
+                            filtered = filtered.filter(function(plan) {
+                                return getPlanTotalCost(plan.id) === 0;
                             });
                         }
                         return filtered;
@@ -276,7 +296,7 @@
                             groupedByRoadmap[rmName].push(plan);
                         });
                         Object.keys(groupedByRoadmap).sort().forEach(function(rmName) {
-                            html += '&lt;div style="margin-top:12px;margin-bottom:6px;font-weight:700;font-size:13px;color:#2e7d32;border-bottom:1px solid #e0e0e0;padding-bottom:4px;"&gt;' + rmName + '&lt;/div&gt;';
+                            html += '&lt;div style="margin-top:12px;margin-bottom:6px;font-weight:700;font-size:13px;color:#993AFF;border-bottom:1px solid #E5E7EB;padding-bottom:4px;"&gt;' + rmName + '&lt;/div&gt;';
                             groupedByRoadmap[rmName].forEach(function(plan) {
                                 var startDate = plan.validStartDate ? new Date(plan.validStartDate) : minDate;
                                 var endDate = plan.validEndDate ? new Date(plan.validEndDate) : new Date(2028, 11, 31);
@@ -298,7 +318,7 @@
                                 var costDisplay = planTotal &gt; 0 ? formatCurrency(planTotal) : '-';
 
                                 html += '&lt;div class="plan-row"&gt;';
-                                html += '&lt;div class="plan-name" title="' + plan.name + '" onclick="showPlanDetail(\'' + plan.id + '\')" style="cursor:pointer;color:#2e7d32;"&gt;' + plan.name + '&lt;/div&gt;';
+                                html += '&lt;div class="plan-name" title="' + plan.name + '" onclick="showPlanDetail(\'' + plan.id + '\')" style="cursor:pointer;color:#361A54;"&gt;' + plan.name + '&lt;/div&gt;';
                                 html += '&lt;div class="plan-cost"&gt;' + costDisplay + '&lt;/div&gt;';
                                 html += '&lt;div class="plan-bar-container"&gt;';
                                 if (plan.planStatus === '0. Roadmap Idea (Unplanned)') {
@@ -326,7 +346,34 @@
                         document.getElementById('summaryTotal').textContent = totalPlans;
                         document.getElementById('summaryTotalCost').textContent = formatCurrency(totalCost);
                         document.getElementById('summaryPlansWithCosts').textContent = plansWithCosts;
-                        document.getElementById('summaryAvgCost').textContent = plansWithCosts &gt; 0 ? formatCurrency(totalCost / plansWithCosts) : '-';
+
+                        // Calculate annual costs by financial year (Aug-Jul)
+                        var yearPeriods = [
+                            {label: '25-26', start: '2025-08-01', end: '2026-07-31'},
+                            {label: '26-27', start: '2026-08-01', end: '2027-07-31'},
+                            {label: '27-28', start: '2027-08-01', end: '2028-07-31'},
+                            {label: '28-29', start: '2028-08-01', end: '2029-07-31'},
+                            {label: '29-30', start: '2029-08-01', end: '2030-07-31'},
+                            {label: '30-31', start: '2030-08-01', end: '2031-07-31'},
+                            {label: '31-32', start: '2031-08-01', end: '2032-07-31'}
+                        ];
+                        var annualHtml = '';
+                        yearPeriods.forEach(function(period) {
+                            var periodTotal = 0;
+                            plans.forEach(function(p) {
+                                var costs = getPlanCosts(p.id);
+                                costs.forEach(function(c) {
+                                    if (!c.startDate) return;
+                                    var cStart = c.startDate;
+                                    var cEnd = c.endDate || c.startDate;
+                                    if (cStart &lt;= period.end &amp;&amp; cEnd &gt;= period.start) {
+                                        periodTotal += c.amount;
+                                    }
+                                });
+                            });
+                            annualHtml += '&lt;div class="annual-cost-item"&gt;&lt;div class="annual-label"&gt;' + period.label + '&lt;/div&gt;&lt;div class="annual-value"&gt;' + formatCurrency(periodTotal) + '&lt;/div&gt;&lt;/div&gt;';
+                        });
+                        document.getElementById('annualCosts').innerHTML = annualHtml;
                     }
 
                     function showPlanDetail(planId) {
@@ -359,7 +406,7 @@
                                 var recLabel = c.recurrence === 'Annual_Cost_Component' ? 'Annual' : 'One-off';
                                 html += '&lt;tr&gt;';
                                 html += '&lt;td&gt;' + (c.name || '-') + '&lt;/td&gt;';
-                                html += '&lt;td style="font-weight:600;color:#2e7d32;"&gt;' + currency + c.amount.toLocaleString() + '&lt;/td&gt;';
+                                html += '&lt;td style="font-weight:600;color:#993AFF;"&gt;' + currency + c.amount.toLocaleString() + '&lt;/td&gt;';
                                 html += '&lt;td&gt;' + (c.startDate || '-') + '&lt;/td&gt;';
                                 html += '&lt;td&gt;' + (c.endDate || '-') + '&lt;/td&gt;';
                                 html += '&lt;td&gt;' + recLabel + '&lt;/td&gt;';
@@ -402,23 +449,24 @@
                 <xsl:call-template name="ViewUserScopingUI"/>
                 <div class="view-wrapper">
                     <h1 style="margin-bottom:5px;">Strategic Plans Cost Explorer</h1>
-                    <p style="color:#666;margin-bottom:20px;">Explore strategic plans on a timeline with their associated costs. Click a plan to see total cost and cost breakdown ordered by date.</p>
+                    <p style="color:#6B7280;margin-bottom:20px;">Explore strategic plans on a timeline with their associated costs. Click a plan to see total cost and cost breakdown ordered by date.</p>
                     <div class="summary-cards">
                         <div class="summary-card"><div class="count" id="summaryTotal">0</div><div class="label">Total Plans</div></div>
-                        <div class="summary-card"><div class="count" id="summaryTotalCost" style="color:#2e7d32;">-</div><div class="label">Total Cost</div></div>
-                        <div class="summary-card"><div class="count" id="summaryPlansWithCosts" style="color:#2e7d32;">0</div><div class="label">Plans with Costs</div></div>
-                        <div class="summary-card"><div class="count" id="summaryAvgCost" style="color:#2e7d32;">-</div><div class="label">Avg Cost per Plan</div></div>
+                        <div class="summary-card"><div class="count" id="summaryTotalCost" style="color:#993AFF;">-</div><div class="label">Total Cost</div></div>
+                        <div class="summary-card"><div class="count" id="summaryPlansWithCosts" style="color:#993AFF;">0</div><div class="label">Plans with Costs</div></div>
                     </div>
+                    <div class="annual-costs" id="annualCosts"/>
                     <div class="filters-bar">
                         <div><label for="filterRoadmap">Roadmap:</label><select id="filterRoadmap"><option value="all">All Roadmaps</option></select></div>
                         <div><label for="filterPriority">Priority:</label><select id="filterPriority"><option value="all">All Priorities</option></select></div>
+                        <div><label for="filterCosts">Costs:</label><select id="filterCosts"><option value="all">All Plans</option><option value="with">With Costs</option><option value="without">Without Costs</option></select></div>
                     </div>
                     <div class="legend">
-                        <div class="legend-item"><div class="legend-swatch" style="background:#5b9bd5;"/><xsl:text> </xsl:text>1. Roadmap Idea</div>
-                        <div class="legend-item"><div class="legend-swatch" style="background:#ed7d31;"/><xsl:text> </xsl:text>2. Discovery</div>
-                        <div class="legend-item"><div class="legend-swatch" style="background:#9b59b6;"/><xsl:text> </xsl:text>3. Governance</div>
-                        <div class="legend-item"><div class="legend-swatch" style="background:#70ad47;"/><xsl:text> </xsl:text>4. Delivery</div>
-                        <div class="legend-item"><div class="legend-swatch" style="background:#bdc3c7;"/><xsl:text> </xsl:text>Not Set</div>
+                        <div class="legend-item"><div class="legend-swatch" style="background:#B982FF;"/><xsl:text> </xsl:text>1. Roadmap Idea</div>
+                        <div class="legend-item"><div class="legend-swatch" style="background:#F59E0B;"/><xsl:text> </xsl:text>2. Discovery</div>
+                        <div class="legend-item"><div class="legend-swatch" style="background:#993AFF;"/><xsl:text> </xsl:text>3. Governance</div>
+                        <div class="legend-item"><div class="legend-swatch" style="background:#1AAB40;"/><xsl:text> </xsl:text>4. Delivery</div>
+                        <div class="legend-item"><div class="legend-swatch" style="background:#9CA3AF;"/><xsl:text> </xsl:text>Not Set</div>
                     </div>
                     <div class="roadmap-container" id="mainContent">
                         <div id="roadmapArea"><p>Loading strategic plans...</p></div>
