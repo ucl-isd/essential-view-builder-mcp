@@ -2,9 +2,15 @@
   "mcpServers": {
     "essential-view-builder": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "--name", "essential-view-builder-mcp", "eas/essential-view-builder-mcp:v1"],
-      "disabled": false,
-      "autoApprove": []
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "c:/Users/machi/OneDrive - University College London/UCL_Architect/DAL/MCP_Fork/essential-view-builder-mcp-1/essential_viewer:/essential_viewer",
+        "eas/essential-view-builder-mcp:v1"
+      ],
+      "disabled": false
     }
   }
 }
