@@ -19,6 +19,9 @@
     <xsl:variable name="allActorToRole" select="/node()/simple_instance[own_slot_value[slot_reference='act_to_role_from_actor']]"/>
     <xsl:variable name="allControls" select="/node()/simple_instance[type='Control']"/>
     <xsl:variable name="allRoadmaps" select="/node()/simple_instance[type='Roadmap']"/>
+    <!-- Control effectiveness = Control performance_measures -> Performance_Measure -> pm_performance_value -> Service_Quality_Value name -->
+    <xsl:variable name="allPerfMeasures" select="/node()/simple_instance[supertype='Performance_Measure']"/>
+    <xsl:variable name="allSQValues" select="/node()/simple_instance[supertype='Service_Quality_Value']"/>
     <!-- Actors that can play a business role (person / group) -->
     <xsl:variable name="allActors" select="/node()/simple_instance[type=('Individual_Actor','Group_Actor') or supertype='Actor']"/>
     <!-- Strategic plans / initiatives referenced by risk_related_support -->
@@ -103,6 +106,7 @@
                     .control-name{color:#361A54;font-weight:600;cursor:pointer;text-decoration:none}
                     .control-name:hover{text-decoration:underline;color:#993AFF}
                     .control-detail{background:#FAF7FF;border:1px solid #DDBDFF;border-radius:6px;padding:10px 12px;margin:6px 0 10px 0;color:#333;font-size:0.95rem;line-height:1.45}
+                    .control-rag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.85rem;font-weight:700;vertical-align:middle}
                     .assessments{display:flex;gap:16px;flex-wrap:wrap}
                     .assessment-card{flex:1;min-width:260px;border:1px solid #E5E7EB;border-radius:8px;padding:16px;background:#fff}
                     .assessment-card .ac-type{font-size:1.3rem;font-weight:700;color:#361A54}
@@ -164,7 +168,7 @@
                                 "id":"<xsl:value-of select="eas:jsonText(string($cause/name))"/>",
                                 "name":"<xsl:value-of select="eas:jsonText(string($cause/own_slot_value[slot_reference='name']/value))"/>",
                                 "description":"<xsl:value-of select="eas:jsonText(string($cause/own_slot_value[slot_reference='description']/value))"/>",
-                                "controls":[<xsl:for-each select="$ctrls">{"name":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='description']/value))"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
+                                "controls":[<xsl:for-each select="$ctrls"><xsl:variable name="ctrlPMs" select="$allPerfMeasures[name=current()/own_slot_value[slot_reference='performance_measures']/value]"/><xsl:variable name="ctrlVal" select="$allSQValues[name=$ctrlPMs/own_slot_value[slot_reference='pm_performance_value']/value][1]"/>{"name":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='description']/value))"/>","effectiveness":"<xsl:value-of select="eas:jsonText(string($ctrlVal/own_slot_value[slot_reference='name']/value))"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
                                 "initiatives":[<xsl:for-each select="$causeInitiatives">"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]
                             }<xsl:if test="not(position()=last())">,</xsl:if>
                         </xsl:for-each>],
@@ -207,6 +211,16 @@
                         if (p &lt;= 50) return {label:'Possible', cls:'rag-green'};
                         if (p &lt;= 75) return {label:'Frequent', cls:'rag-amber'};
                         return {label:'Imminent', cls:'rag-red'};
+                    }
+
+                    // Control effectiveness -> RAG label + colour, from perf-measure value name (e.g. "Control RAG - Amber")
+                    function controlRag(effVal) {
+                        if (!effVal || effVal.trim() === '') return null;
+                        var v = effVal.toLowerCase();
+                        if (v.indexOf('green') !== -1) return {label:'Green', bg:'#57C84D', fg:'#fff'};
+                        if (v.indexOf('amber') !== -1 || v.indexOf('yellow') !== -1) return {label:'Amber', bg:'#F5A623', fg:'#fff'};
+                        if (v.indexOf('red') !== -1) return {label:'Red', bg:'#E5352B', fg:'#fff'};
+                        return {label: effVal, bg:'#9CA3AF', fg:'#fff'};
                     }
 
                     // Likelihood column 1-4 from probability 0-100
@@ -416,7 +430,9 @@
                                 if (c.controls.length &gt; 0) {
                                     c.controls.forEach(function(ctrl, ci){
                                         var cid = c.id + '-ctrl-' + ci;
-                                        html += '&lt;div&gt;&lt;a class="control-name" onclick="toggleControl(\'' + cid + '\')"&gt;' + esc(ctrl.name) + '&lt;/a&gt;';
+                                        var rag = controlRag(ctrl.effectiveness);
+                                        var ragBadge = rag ? ' &lt;span class="control-rag" style="background:' + rag.bg + ';color:' + rag.fg + ';"&gt;' + esc(rag.label) + '&lt;/span&gt;' : '';
+                                        html += '&lt;div&gt;&lt;a class="control-name" onclick="toggleControl(\'' + cid + '\')"&gt;' + esc(ctrl.name) + '&lt;/a&gt;' + ragBadge;
                                         html += '&lt;div id="control-' + cid + '" class="control-detail" style="display:none;"&gt;' + esc(ctrl.description || 'No description recorded.') + '&lt;/div&gt;&lt;/div&gt;';
                                     });
                                 } else {
