@@ -12,13 +12,11 @@
     <!-- ===== Model variables ===== -->
     <xsl:variable name="allBusCaps" select="/node()/simple_instance[type='Business_Capability']"/>
     <xsl:variable name="allBusProcs" select="/node()/simple_instance[type=('Business_Process','Business_Activity')]"/>
-    <xsl:variable name="allFlows" select="/node()/simple_instance[type='Business_Process_Flow']"/>
-    <xsl:variable name="allUsages" select="/node()/simple_instance[type=('Business_Process_Usage','Business_Activity_Usage')]"/>
-    <xsl:variable name="allOccursBefore" select="/node()/simple_instance[type=':BPU-OCCURS_BEFORE-BPU']"/>
-    <xsl:variable name="allAppFuncs" select="/node()/simple_instance[type='Application_Function']"/>
-    <xsl:variable name="allApps" select="/node()/simple_instance[type=('Application_Provider','Composite_Application_Provider')]"/>
+    <xsl:variable name="allPhysProcs" select="/node()/simple_instance[type='Physical_Process']"/>
     <xsl:variable name="allAppServices" select="/node()/simple_instance[type=('Application_Service','Composite_Application_Service')]"/>
-    <xsl:variable name="allAppProviderRoles" select="/node()/simple_instance[type='Application_Provider_Role']"/>
+    <xsl:variable name="allApps" select="/node()/simple_instance[type=('Application_Provider','Composite_Application_Provider')]"/>
+    <xsl:variable name="allProvRoles" select="/node()/simple_instance[type='Application_Provider_Role']"/>
+    <xsl:variable name="allApTaPhys" select="/node()/simple_instance[type='APP_PRO_TO_PHYS_BUS_RELATION']"/>
 
     <!-- Value streams & stages -->
     <xsl:variable name="allValueStreams" select="/node()/simple_instance[type='Value_Stream']"/>
@@ -40,9 +38,12 @@
 
     <!-- Keys -->
     <xsl:key name="instByName" match="/node()/simple_instance" use="name"/>
-    <xsl:key name="appFunToBusByName" match="/node()/simple_instance[own_slot_value[slot_reference='appfun_to_bus_from_appfun']]" use="name"/>
     <xsl:key name="procsByCapability" match="/node()/simple_instance[type=('Business_Process','Business_Activity')]" use="own_slot_value[slot_reference='realises_business_capability']/value"/>
     <xsl:key name="stagesByStream" match="/node()/simple_instance[type='Value_Stage']" use="own_slot_value[slot_reference='vsg_value_stream']/value"/>
+    <!-- Physical processes that implement a business process -->
+    <xsl:key name="physByBusProc" match="/node()/simple_instance[type='Physical_Process']" use="own_slot_value[slot_reference='implements_business_process']/value"/>
+    <!-- APP_PRO_TO_PHYS_BUS_RELATION keyed by the physical process it supports -->
+    <xsl:key name="apPhysRelByPhys" match="/node()/simple_instance[type='APP_PRO_TO_PHYS_BUS_RELATION']" use="own_slot_value[slot_reference='apppro_to_physbus_to_busproc']/value"/>
 
     <!-- JSON-safe text escaper -->
     <xsl:function name="eas:jsonText">
@@ -55,28 +56,41 @@
         <xsl:value-of select="$s5"/>
     </xsl:function>
 
-    <!-- Render a business process/activity as a JSON node, ordered by occurs-before within its flow -->
+    <!-- Render a business process as a JSON node with its physical processes, services and apps.
+         Chain: BusProc -> Physical_Process (implements_business_process)
+                Physical_Process <- APP_PRO_TO_PHYS_BUS_RELATION (apppro_to_physbus_to_busproc)
+                relation -> apppro_to_physbus_from_appprorole -> Application_Provider_Role
+                role -> provided_by_application_provider_roles (reverse) -> Application_Service
+                role -> role_for_application_provider -> Composite_Application_Provider
+                (plus direct app support via app_pro_supports_phys_proc) -->
     <xsl:template name="renderProcNode">
         <xsl:param name="proc"/>
-        <xsl:param name="depth"/>
-        <xsl:variable name="funRels" select="key('appFunToBusByName', $proc/own_slot_value[slot_reference='bp_supported_by_app_fun']/value)"/>
-        <xsl:variable name="appFuncs" select="$allAppFuncs[name = $funRels/own_slot_value[slot_reference='appfun_to_bus_from_appfun']/value]"/>
-        <xsl:variable name="funcServices" select="$allAppServices[name = $appFuncs/own_slot_value[slot_reference='provided_by_application_service']/value]"/>
-        <xsl:variable name="funcServiceRoles" select="$allAppProviderRoles[name = $funcServices/own_slot_value[slot_reference='provided_by_application_provider_roles']/value]"/>
-        <xsl:variable name="allAppsForProc" select="$allApps[name = $funcServiceRoles/own_slot_value[slot_reference='role_for_application_provider']/value]"/>
-        <xsl:variable name="flow" select="$allFlows[name=$proc/own_slot_value[slot_reference='defining_business_process_flow']/value]"/>
-        <xsl:variable name="usages" select="$allUsages[own_slot_value[slot_reference='used_in_process_flow']/value = $flow/name]"/>
-        <xsl:variable name="rels" select="$allOccursBefore[own_slot_value[slot_reference='contained_in_process_flow']/value = $flow/name]"/>
-        <xsl:variable name="targetUsageIds" select="$rels/own_slot_value[slot_reference=':TO']/value"/>
-        <xsl:variable name="startUsages" select="$usages[not(name = $targetUsageIds)][$allBusProcs/name = (own_slot_value[slot_reference='business_process_used']/value, own_slot_value[slot_reference='business_activity_used']/value)]"/>
+        <!-- Physical processes implementing this business process -->
+        <xsl:variable name="physProcs" select="key('physByBusProc', $proc/name)"/>
         {
         "id":"<xsl:value-of select="eas:jsonText(string($proc/name))"/>",
         "name":"<xsl:value-of select="eas:jsonText(string($proc/own_slot_value[slot_reference='name']/value))"/>",
         "type":"<xsl:value-of select="eas:jsonText(string($proc/type))"/>",
         "description":"<xsl:value-of select="eas:jsonText(string($proc/own_slot_value[slot_reference='description']/value))"/>",
-        "appFunctions":[<xsl:for-each select="$appFuncs">{"id":"<xsl:value-of select="eas:jsonText(string(current()/name))"/>","name":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='description']/value))"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
-        "services":[<xsl:for-each select="$funcServices">{"id":"<xsl:value-of select="eas:jsonText(string(current()/name))"/>","name":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='description']/value))"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
-        "apps":[<xsl:for-each select="$allAppsForProc">
+        "physProcs":[<xsl:for-each select="$physProcs">
+            <xsl:variable name="pp" select="current()"/>
+            <!-- relations supporting this physical process -->
+            <xsl:variable name="rels" select="key('apPhysRelByPhys', $pp/name)"/>
+            <!-- provider roles referenced by those relations -->
+            <xsl:variable name="roles" select="$allProvRoles[name = $rels/own_slot_value[slot_reference='apppro_to_physbus_from_appprorole']/value]"/>
+            <!-- providers: via roles, plus any direct app support -->
+            <xsl:variable name="roleApps" select="$allApps[name = $roles/own_slot_value[slot_reference='role_for_application_provider']/value]"/>
+            <xsl:variable name="directApps" select="$allApps[name = $rels/own_slot_value[slot_reference='apppro_to_physbus_from_apppro']/value]"/>
+            <xsl:variable name="ppApps" select="$roleApps | $directApps"/>
+            {"id":"<xsl:value-of select="eas:jsonText(string($pp/name))"/>","name":"<xsl:value-of select="eas:jsonText(string($pp/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string($pp/own_slot_value[slot_reference='description']/value))"/>",
+            "appIds":[<xsl:for-each select="$ppApps">"<xsl:value-of select="eas:jsonText(string(current()/name))"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]
+            }<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
+        "apps":[<xsl:variable name="allRels2" select="key('apPhysRelByPhys', $physProcs/name)"/>
+            <xsl:variable name="allRoles2" select="$allProvRoles[name = $allRels2/own_slot_value[slot_reference='apppro_to_physbus_from_appprorole']/value]"/>
+            <xsl:variable name="roleApps2" select="$allApps[name = $allRoles2/own_slot_value[slot_reference='role_for_application_provider']/value]"/>
+            <xsl:variable name="directApps2" select="$allApps[name = $allRels2/own_slot_value[slot_reference='apppro_to_physbus_from_apppro']/value]"/>
+            <xsl:variable name="capApps" select="$roleApps2 | $directApps2"/>
+            <xsl:for-each select="$capApps">
             <xsl:variable name="app" select="current()"/>
             <xsl:variable name="dm" select="$allDeliveryModels[name=$app/own_slot_value[slot_reference='ap_delivery_model']/value]"/>
             <xsl:variable name="cb" select="$allCodebaseStatuses[name=$app/own_slot_value[slot_reference='ap_codebase_status']/value]"/>
@@ -85,31 +99,11 @@
             <xsl:variable name="provServices" select="$allAppServices[name=$app/own_slot_value[slot_reference='provides_application_services']/value]"/>
             <xsl:variable name="ccrs" select="key('ccrByElement', $app/name)"/>
             <xsl:variable name="appContracts" select="$allContracts[name=$ccrs/own_slot_value[slot_reference='contract_component_from_contract']/value]"/>
-            {"id":"<xsl:value-of select="eas:jsonText(string($app/name))"/>","name":"<xsl:value-of select="eas:jsonText(string($app/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string($app/own_slot_value[slot_reference='description']/value))"/>","deliveryModel":"<xsl:value-of select="eas:jsonText(string($dm/own_slot_value[slot_reference='name']/value))"/>","codebase":"<xsl:value-of select="eas:jsonText(string($cb/own_slot_value[slot_reference='name']/value))"/>","disposition":"<xsl:value-of select="eas:jsonText(string($disp/own_slot_value[slot_reference='name']/value))"/>","supplier":"<xsl:value-of select="eas:jsonText(string($sup/own_slot_value[slot_reference='name']/value))"/>","providesServices":[<xsl:for-each select="$provServices">"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],"contracts":[<xsl:for-each select="$appContracts">{"name":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>","endDate":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='contract_end_date_ISO8601']/value))"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
-        "children":[<xsl:if test="$depth &lt; 5"><xsl:for-each select="$startUsages"><xsl:if test="position() &gt; 1">,</xsl:if><xsl:call-template name="renderUsageChain"><xsl:with-param name="usage" select="current()"/><xsl:with-param name="rels" select="$rels"/><xsl:with-param name="usages" select="$usages"/><xsl:with-param name="depth" select="$depth"/><xsl:with-param name="guard" select="0"/></xsl:call-template></xsl:for-each></xsl:if>]
+            {"id":"<xsl:value-of select="eas:jsonText(string($app/name))"/>","name":"<xsl:value-of select="eas:jsonText(string($app/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string($app/own_slot_value[slot_reference='description']/value))"/>","deliveryModel":"<xsl:value-of select="eas:jsonText(string($dm/own_slot_value[slot_reference='name']/value))"/>","codebase":"<xsl:value-of select="eas:jsonText(string($cb/own_slot_value[slot_reference='name']/value))"/>","disposition":"<xsl:value-of select="eas:jsonText(string($disp/own_slot_value[slot_reference='name']/value))"/>","supplier":"<xsl:value-of select="eas:jsonText(string($sup/own_slot_value[slot_reference='name']/value))"/>","providesServices":[<xsl:for-each select="$provServices">"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],"contracts":[<xsl:for-each select="$appContracts">{"name":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>","endDate":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='contract_end_date_ISO8601']/value))"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]
         }
     </xsl:template>
 
-    <!-- Walk the occurs-before chain from a start usage, emitting ordered child proc nodes -->
-    <xsl:template name="renderUsageChain">
-        <xsl:param name="usage"/>
-        <xsl:param name="rels"/>
-        <xsl:param name="usages"/>
-        <xsl:param name="depth"/>
-        <xsl:param name="guard"/>
-        <xsl:if test="$usage and $guard &lt; 50">
-            <xsl:variable name="childProc" select="$allBusProcs[name = ($usage/own_slot_value[slot_reference='business_process_used']/value, $usage/own_slot_value[slot_reference='business_activity_used']/value)]"/>
-            <xsl:if test="$childProc">
-                <xsl:call-template name="renderProcNode"><xsl:with-param name="proc" select="$childProc[1]"/><xsl:with-param name="depth" select="$depth + 1"/></xsl:call-template>
-            </xsl:if>
-            <xsl:variable name="nextRel" select="$rels[own_slot_value[slot_reference=':FROM']/value = $usage/name][1]"/>
-            <xsl:variable name="nextUsage" select="$usages[name = $nextRel/own_slot_value[slot_reference=':TO']/value]"/>
-            <xsl:if test="$nextUsage and $childProc">,</xsl:if>
-            <xsl:call-template name="renderUsageChain"><xsl:with-param name="usage" select="$nextUsage[1]"/><xsl:with-param name="rels" select="$rels"/><xsl:with-param name="usages" select="$usages"/><xsl:with-param name="depth" select="$depth"/><xsl:with-param name="guard" select="$guard + 1"/></xsl:call-template>
-        </xsl:if>
-    </xsl:template>
-
-    <!-- Render a single L1 capability as a JSON object (sub-caps + full ordered process tree) -->
+    <!-- Render a single L1 capability as a JSON object -->
     <xsl:template name="renderCap">
         <xsl:param name="cap"/>
         <xsl:variable name="l0" select="$l0Caps[own_slot_value[slot_reference='contained_business_capabilities']/value = $cap/name]"/>
@@ -120,8 +114,7 @@
         "name":"<xsl:value-of select="eas:jsonText(string($cap/own_slot_value[slot_reference='name']/value))"/>",
         "l0":"<xsl:value-of select="eas:jsonText(string($l0[1]/own_slot_value[slot_reference='name']/value))"/>",
         "description":"<xsl:value-of select="eas:jsonText(string($cap/own_slot_value[slot_reference='description']/value))"/>",
-        "subCaps":[<xsl:for-each select="$subCaps">{"id":"<xsl:value-of select="eas:jsonText(string(current()/name))"/>","name":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='description']/value))"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
-        "processes":[<xsl:for-each select="$capProcs"><xsl:call-template name="renderProcNode"><xsl:with-param name="proc" select="current()"/><xsl:with-param name="depth" select="0"/></xsl:call-template><xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]
+        "processes":[<xsl:for-each select="$capProcs"><xsl:call-template name="renderProcNode"><xsl:with-param name="proc" select="current()"/></xsl:call-template><xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]
         }
     </xsl:template>
 
@@ -130,26 +123,35 @@
         <html>
             <head>
                 <xsl:call-template name="commonHeadContent"/>
-                <title>UCL Value Stream &#8594; Capability Explorer</title>
+                <title>UCL Value Stream &#8594; Capability Flow</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&amp;display=swap');
-                    .view-wrapper{padding:20px;max-width:1800px;margin:80px auto 0 auto;font-family:'DM Sans',sans-serif;color:#111827;font-size:1.1rem}
+                    .view-wrapper{padding:20px;max-width:1900px;margin:80px auto 0 auto;font-family:'DM Sans',sans-serif;color:#111827;font-size:1.1rem}
                     .view-wrapper h1{color:#361A54;margin-bottom:4px}
                     .subtitle{color:#6B7280;margin-bottom:16px;font-size:1.1rem}
-                    .vs-select-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+                    .controls{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
+                    .vs-select-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
                     .vs-select-row label{font-weight:700;color:#361A54}
                     .vs-select-row select{padding:10px 14px;border:1px solid #DDBDFF;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:1.05rem;min-width:320px;background:#fff}
+                    .stage-filter{background:#F5F0FF;border:1px solid #DDBDFF;border-radius:10px;padding:12px 16px}
+                    .stage-filter .sf-title{font-weight:700;color:#361A54;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+                    .sf-actions{font-size:0.85rem;font-weight:600}
+                    .sf-actions a{color:#7d1fe0;cursor:pointer;text-decoration:underline;margin-left:10px}
+                    .sf-checks{display:flex;flex-wrap:wrap;gap:8px}
+                    .sf-chk{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #DDBDFF;border-radius:20px;padding:6px 14px;cursor:pointer;font-weight:600;color:#361A54;font-size:0.95rem;user-select:none}
+                    .sf-chk input{cursor:pointer}
+                    .sf-chk .sf-idx{background:#361A54;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem}
                     .vs-desc{color:#4B5563;margin-bottom:18px;line-height:1.55;font-size:1.05rem}
                     .no-data{text-align:center;padding:40px;color:#6B7280}
-                    /* Stage chevrons across the top */
-                    .stage-track{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px}
-                    .stage-col{flex:1 1 0;min-width:230px;display:flex;flex-direction:column}
+                    /* Stage columns */
+                    .stage-track{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;align-items:flex-start}
+                    .stage-col{flex:1 1 0;min-width:340px;display:flex;flex-direction:column}
                     .stage-head{position:relative;background:linear-gradient(135deg,#361A54,#5B2A87);color:#fff;padding:14px 20px 14px 30px;font-weight:700;font-size:1.05rem;clip-path:polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%);min-height:52px;display:flex;align-items:center;gap:8px}
                     .stage-col:first-child .stage-head{clip-path:polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%);padding-left:20px}
                     .stage-index{background:rgba(255,255,255,0.25);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0}
                     .stage-body{background:#F5F0FF;border:1px solid #DDBDFF;border-top:none;border-radius:0 0 8px 8px;padding:10px;display:flex;flex-direction:column;gap:8px;flex:1}
                     .stage-cap-count{font-size:0.8rem;color:#6B7280;padding:2px 4px}
-                    /* L1 capability card inside a stage */
+                    /* L1 capability card */
                     .vcap{background:#fff;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden}
                     .vcap-head{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:#EDE4FF;color:#361A54;font-weight:700}
                     .vcap-head .caret{font-size:0.85rem;transition:transform 0.2s;flex-shrink:0}
@@ -158,33 +160,29 @@
                     .vcap-body{display:none;padding:12px;background:#FBF9FF;border-top:1px solid #E5E7EB}
                     .vcap-body.open{display:block}
                     .vcap-desc{color:#4B5563;margin-bottom:12px;line-height:1.5;font-size:0.95rem}
-                    .box{width:100%;background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:12px;margin-bottom:10px}
-                    .box:last-child{margin-bottom:0}
-                    .box-title{font-size:0.82rem;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:10px;padding-bottom:5px;border-bottom:2px solid}
-                    .box-subcap .box-title{color:#361A54;border-color:#361A54}
-                    .box-proc .box-title{color:#7d1fe0;border-color:#7d1fe0}
-                    .box-func .box-title{color:#2E75B6;border-color:#2E75B6}
-                    .box-svc .box-title{color:#0E7C6B;border-color:#0E7C6B}
-                    .box-app .box-title{color:#12B76A;border-color:#12B76A}
-                    .pill{display:inline-block;border-radius:16px;padding:6px 12px;margin:0 5px 6px 0;font-weight:600;font-size:0.92rem;cursor:default}
-                    .pill.subcap{background:#EDE4FF;color:#361A54;border:1px solid #DDBDFF}
-                    .pill.func{background:#3E7DD6;color:#fff}
-                    .pill.svc{background:#0E9E86;color:#fff}
-                    .pill.app{background:#12B76A;color:#fff}
-                    .pill.clickable{cursor:pointer}
-                    .pill.clickable:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,0.15)}
-                    .proc-tier{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed #E5E7EB}
-                    .proc-tier:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
-                    .proc-tier-label{flex-basis:100%;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em;color:#9CA3AF;font-weight:700;margin-bottom:2px}
-                    .proc-card{display:flex;flex-direction:column;gap:3px;background:#F5F0FF;border:1px solid #DDBDFF;border-radius:8px;padding:8px 12px;min-width:150px;cursor:pointer;transition:transform 0.1s,box-shadow 0.1s}
-                    .proc-card:hover{transform:translateY(-2px);box-shadow:0 3px 10px rgba(0,0,0,0.12)}
-                    .proc-card.activity{background:#fff;border-style:dashed}
-                    .proc-card .pc-head{display:flex;align-items:center;gap:6px}
-                    .proc-seq{background:#7d1fe0;color:#fff;border-radius:6px;padding:2px 7px;font-size:0.8rem;font-weight:700;flex-shrink:0}
-                    .proc-card.activity .proc-seq{background:#B982FF}
-                    .proc-name{font-weight:600;color:#361A54;font-size:0.92rem}
-                    .proc-meta{font-size:0.78rem;color:#6B7280}
-                    .empty-note{color:#9CA3AF;font-style:italic;font-size:0.9rem}
+                    /* Connected node diagram - vertical tiers (top: Capability, bottom: Application) */
+                    .diagram-scroll{overflow-x:auto}
+                    .diagram{position:relative}
+                    .diagram svg.links{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+                    .diag-rows{position:relative;display:flex;flex-direction:column;gap:52px;z-index:2}
+                    .diag-row{display:flex;flex-direction:column;gap:6px}
+                    .diag-row-title{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;padding-bottom:4px;border-bottom:2px solid;margin-bottom:4px;align-self:flex-start}
+                    .row-cap .diag-row-title{color:#361A54;border-color:#361A54}
+                    .row-pp .diag-row-title{color:#B26A00;border-color:#B26A00}
+                    .row-app .diag-row-title{color:#12B76A;border-color:#12B76A}
+                    .diag-row-nodes{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+                    .row-cap .diag-row-nodes{justify-content:center}
+                    .node{border-radius:8px;padding:9px 12px;font-weight:600;font-size:0.9rem;border:1px solid;position:relative;line-height:1.3;max-width:240px}
+                    .node.n-cap{background:#EDE4FF;color:#361A54;border-color:#DDBDFF;font-size:1rem;padding:12px 18px}
+                    .node.n-pp{background:#FFF4E5;color:#8A5200;border-color:#F3D6A6}
+                    .node.n-app{background:#E7F8EF;color:#0B7A47;border-color:#B7E9CD;cursor:pointer}
+                    .node.n-app:hover{box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+                    .node.dim{opacity:0.25}
+                    .node .n-meta{display:block;font-size:0.72rem;color:#6B7280;font-weight:500;margin-top:3px}
+                    .diag-empty{color:#9CA3AF;font-style:italic;font-size:0.85rem;padding:6px}
+                    .legend{display:flex;flex-wrap:wrap;gap:14px;margin:6px 0 14px 0;font-size:0.8rem;color:#4B5563}
+                    .legend span{display:inline-flex;align-items:center;gap:5px}
+                    .legend i{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,0.1)}
                     /* Sidebar */
                     .sb-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:999;display:none}
                     .sb-overlay.open{display:block}
@@ -201,14 +199,10 @@
                     .sb-label{font-size:0.85rem;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280;font-weight:700;margin-bottom:4px}
                     .sb-value{font-size:1.15rem;color:#222;line-height:1.55}
                     .sb-empty{color:#9CA3AF;font-style:italic}
-                    .sb-child-list{display:flex;flex-direction:column;gap:8px}
-                    .sb-child{background:#F5F0FF;border:1px solid #DDBDFF;border-radius:8px;padding:10px 14px;font-weight:600;color:#361A54;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
-                    .sb-child:hover{background:#EDE4FF}
-                    .sb-child.activity{border-style:dashed}
-                    .sb-child-type{font-size:0.78rem;text-transform:uppercase;color:#7d1fe0;font-weight:700;flex-shrink:0}
                     .sb-pillwrap{display:flex;flex-wrap:wrap;gap:6px}
                     .sb-pill{display:inline-block;border-radius:16px;padding:4px 12px;font-size:0.95rem;font-weight:600}
                     .sb-pill.svc{background:#0E9E86;color:#fff}
+                    .sb-child-list{display:flex;flex-direction:column;gap:8px}
                     .sb-contract{background:#F5F0FF;border:1px solid #DDBDFF;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
                     .sb-contract .ct-name{font-weight:600;color:#361A54}
                     .sb-contract .ct-end{font-size:0.9rem;color:#6B7280;white-space:nowrap;flex-shrink:0}
@@ -245,7 +239,6 @@
                         procs.forEach(function(p){
                             PROC_BY_ID[p.id] = p;
                             (p.apps||[]).forEach(function(a){ APP_BY_ID[a.id] = a; });
-                            if (p.children &amp;&amp; p.children.length) indexProcs(p.children);
                         });
                     }
                     STREAMS.forEach(function(vs){ vs.stages.forEach(function(st){ st.caps.forEach(function(c){ indexProcs(c.processes); }); }); });
@@ -289,15 +282,12 @@
                         var html = '&lt;div class="sb-kicker proc"&gt;' + (isActivity ? 'Business Activity' : 'Business Process') + '&lt;/div&gt;';
                         html += '&lt;h2 class="sb-title"&gt;' + esc(p.name) + '&lt;/h2&gt;';
                         html += detailRow('Description', p.description);
-                        html += '&lt;div class="sb-row"&gt;&lt;div class="sb-label"&gt;Sub-processes &amp;amp; activities&lt;/div&gt;&lt;div class="sb-value"&gt;';
-                        if (p.children &amp;&amp; p.children.length){
+                        html += '&lt;div class="sb-row"&gt;&lt;div class="sb-label"&gt;Physical processes&lt;/div&gt;&lt;div class="sb-value"&gt;';
+                        if (p.physProcs &amp;&amp; p.physProcs.length){
                             html += '&lt;div class="sb-child-list"&gt;';
-                            p.children.forEach(function(ch){
-                                var chAct = /Activity/i.test(ch.type);
-                                html += '&lt;div class="sb-child ' + (chAct ? 'activity' : '') + '" onclick="openProc(\'' + ch.id + '\')"&gt;' + esc(ch.name) + '&lt;span class="sb-child-type"&gt;' + (chAct ? 'Activity' : 'Process') + '&lt;/span&gt;&lt;/div&gt;';
-                            });
+                            p.physProcs.forEach(function(pp){ html += '&lt;div class="sb-contract"&gt;&lt;span class="ct-name"&gt;' + esc(pp.name) + '&lt;/span&gt;&lt;span class="ct-end"&gt;' + pp.appIds.length + ' app' + (pp.appIds.length===1?'':'s') + '&lt;/span&gt;&lt;/div&gt;'; });
                             html += '&lt;/div&gt;';
-                        } else { html += '&lt;span class="sb-empty"&gt;None&lt;/span&gt;'; }
+                        } else { html += '&lt;span class="sb-empty"&gt;None linked&lt;/span&gt;'; }
                         html += '&lt;/div&gt;&lt;/div&gt;';
                         openSidebar(html);
                     }
@@ -312,93 +302,107 @@
                         document.getElementById('sbOverlay').classList.remove('open');
                     }
 
-                    function collectFromProcs(procs, key, map) {
-                        procs.forEach(function(p){
-                            (p[key]||[]).forEach(function(x){ map[x.id] = x; });
-                            if (p.children &amp;&amp; p.children.length) collectFromProcs(p.children, key, map);
-                        });
-                    }
+                    var _nodeSeq = 0;
+                    function nid(){ return 'nd' + (_nodeSeq++); }
 
-                    function collectTiers(procs, seqPrefix, depth, tiers) {
-                        if (!tiers[depth]) tiers[depth] = [];
-                        procs.forEach(function(p, i){
-                            var seq = seqPrefix ? (seqPrefix + '.' + (i+1)) : String(i+1);
-                            tiers[depth].push({node: p, seq: seq});
-                            if (p.children &amp;&amp; p.children.length) collectTiers(p.children, seq, depth + 1, tiers);
-                        });
-                    }
-
-                    function renderProcTree(procs) {
-                        var tiers = [];
-                        collectTiers(procs, '', 0, tiers);
-                        var html = '';
-                        tiers.forEach(function(tier, depth){
-                            if (!tier || !tier.length) return;
-                            html += '&lt;div class="proc-tier"&gt;';
-                            html += '&lt;div class="proc-tier-label"&gt;Level ' + (depth + 1) + '&lt;/div&gt;';
-                            tier.forEach(function(item){
-                                var p = item.node;
-                                var isActivity = /Activity/i.test(p.type);
-                                html += '&lt;div class="proc-card' + (isActivity ? ' activity' : '') + '" onclick="openProc(\'' + p.id + '\')"&gt;';
-                                html += '&lt;div class="pc-head"&gt;&lt;span class="proc-seq"&gt;' + item.seq + '&lt;/span&gt;&lt;span class="proc-name"&gt;' + esc(p.name) + '&lt;/span&gt;&lt;/div&gt;';
-                                var extra = [];
-                                if (p.appFunctions.length) extra.push(p.appFunctions.length + ' function' + (p.appFunctions.length===1?'':'s'));
-                                if (p.apps.length) extra.push(p.apps.length + ' app' + (p.apps.length===1?'':'s'));
-                                if (extra.length) html += '&lt;span class="proc-meta"&gt;' + extra.join(' &#8226; ') + '&lt;/span&gt;';
-                                html += '&lt;/div&gt;';
+                    // Build the connected node diagram for one capability.
+                    // 3 vertical tiers, top -&gt; bottom: Capability | Physical Process | Application
+                    // The business process layer is used only to gather physical processes, not shown.
+                    // Only physical processes that link to an application are included.
+                    // Links drawn: cap-&gt;pp, pp-&gt;app (all real).
+                    function renderCapDiagram(c){
+                        var capNode = {domId: nid(), name: c.name};
+                        var ppNodes = [], appNodes = [];
+                        var ppById = {}, appById = {};
+                        var links = []; // {from, to}
+                        c.processes.forEach(function(bp){
+                            (bp.physProcs||[]).forEach(function(pp){
+                                if (!(pp.appIds &amp;&amp; pp.appIds.length)) return; // skip phys procs with no application
+                                var ppDom = ppById[pp.id];
+                                if (!ppDom){ ppDom = nid(); ppById[pp.id] = ppDom; ppNodes.push({domId: ppDom, node: pp}); links.push({from: capNode.domId, to: ppDom}); }
+                                (pp.appIds||[]).forEach(function(aid){
+                                    if (!appById[aid]){ appById[aid] = nid(); var app = (bp.apps||[]).find(function(a){return a.id===aid;}) || APP_BY_ID[aid]; appNodes.push({domId: appById[aid], node: app || {id:aid, name:aid}}); }
+                                    links.push({from: ppDom, to: appById[aid]});
+                                });
                             });
-                            html += '&lt;/div&gt;';
                         });
-                        return html;
+
+                        if (!ppNodes.length) return {html: '', links: [], empty: true};
+
+                        function rowHtml(cls, title, nodesHtml){
+                            return '&lt;div class="diag-row ' + cls + '"&gt;&lt;div class="diag-row-title"&gt;' + title + '&lt;/div&gt;&lt;div class="diag-row-nodes"&gt;' + (nodesHtml || '&lt;div class="diag-empty"&gt;None&lt;/div&gt;') + '&lt;/div&gt;&lt;/div&gt;';
+                        }
+                        var capRow = '&lt;div class="node n-cap" id="' + capNode.domId + '"&gt;' + esc(capNode.name) + '&lt;/div&gt;';
+                        var ppRow = ppNodes.map(function(p){ return '&lt;div class="node n-pp" id="' + p.domId + '"&gt;' + esc(p.node.name) + '&lt;/div&gt;'; }).join('');
+                        var appRow = appNodes.map(function(a){ return '&lt;div class="node n-app" id="' + a.domId + '" onclick="openApp(\'' + a.node.id + '\')"&gt;' + esc(a.node.name) + '&lt;/div&gt;'; }).join('');
+
+                        // Top -&gt; bottom: Capability, Physical Process, Application
+                        var html = '&lt;div class="diagram-scroll"&gt;&lt;div class="diagram"&gt;&lt;svg class="links"&gt;&lt;/svg&gt;&lt;div class="diag-rows"&gt;';
+                        html += rowHtml('row-cap', 'Capability', capRow);
+                        html += rowHtml('row-pp', 'Physical Process', ppRow);
+                        html += rowHtml('row-app', 'Application', appRow);
+                        html += '&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;';
+                        return {html: html, links: links};
                     }
 
-                    // Render an L1 capability card with the full lower-level stack
+                    // Draw SVG lines between node DOM elements after layout
+                    function drawLinks(diagramEl, links){
+                        var svg = diagramEl.querySelector('svg.links');
+                        var inner = diagramEl.querySelector('.diag-rows');
+                        if (!svg || !inner) return;
+                        var w = inner.scrollWidth, h = inner.scrollHeight;
+                        diagramEl.style.width = w + 'px';
+                        diagramEl.style.height = h + 'px';
+                        svg.setAttribute('width', w); svg.setAttribute('height', h);
+                        svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+                        var base = diagramEl.getBoundingClientRect();
+                        var ns = 'http://www.w3.org/2000/svg';
+                        svg.innerHTML = '';
+                        links.forEach(function(lk){
+                            var a = document.getElementById(lk.from), b = document.getElementById(lk.to);
+                            if (!a || !b) return;
+                            var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+                            // vertical flow: from bottom-centre of source node to top-centre of target node
+                            var x1 = ra.left + ra.width/2 - base.left, y1 = ra.bottom - base.top;
+                            var x2 = rb.left + rb.width/2 - base.left, y2 = rb.top - base.top;
+                            var my = (y1 + y2) / 2;
+                            var path = document.createElementNS(ns, 'path');
+                            path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + my + ', ' + x2 + ' ' + my + ', ' + x2 + ' ' + y2);
+                            path.setAttribute('fill', 'none');
+                            path.setAttribute('stroke', '#B49AD1');
+                            path.setAttribute('stroke-width', '1.6');
+                            svg.appendChild(path);
+                        });
+                    }
+
+                    var PENDING = []; // diagrams awaiting draw when their card opens
+
                     function renderCapCard(c){
+                        var diag = renderCapDiagram(c);
+                        var bodyId = 'vbody-' + c.uid;
                         var html = '&lt;div class="vcap"&gt;';
-                        html += '&lt;div class="vcap-head" onclick="toggleCap(this, \'vbody-' + c.uid + '\')"&gt;&lt;span class="caret"&gt;&#9656;&lt;/span&gt;&lt;span class="vcap-name"&gt;' + esc(c.name) + '&lt;/span&gt;&lt;/div&gt;';
-                        html += '&lt;div class="vcap-body" id="vbody-' + c.uid + '"&gt;';
+                        html += '&lt;div class="vcap-head" onclick="toggleCap(this, \'' + bodyId + '\')"&gt;&lt;span class="caret"&gt;&#9656;&lt;/span&gt;&lt;span class="vcap-name"&gt;' + esc(c.name) + '&lt;/span&gt;&lt;/div&gt;';
+                        html += '&lt;div class="vcap-body" id="' + bodyId + '"&gt;';
                         if (c.description) html += '&lt;div class="vcap-desc"&gt;' + esc(c.description) + '&lt;/div&gt;';
-                        // Sub-capabilities
-                        html += '&lt;div class="box box-subcap"&gt;&lt;div class="box-title"&gt;Sub-capabilities&lt;/div&gt;';
-                        if (c.subCaps.length) { c.subCaps.forEach(function(s){ html += '&lt;span class="pill subcap" title="' + esc(s.description) + '"&gt;' + esc(s.name) + '&lt;/span&gt;'; }); }
-                        else html += '&lt;span class="empty-note"&gt;None&lt;/span&gt;';
-                        html += '&lt;/div&gt;';
-                        // Processes
-                        html += '&lt;div class="box box-proc"&gt;&lt;div class="box-title"&gt;Business Processes &amp;amp; Activities&lt;/div&gt;';
-                        if (c.processes.length) html += renderProcTree(c.processes);
-                        else html += '&lt;span class="empty-note"&gt;None&lt;/span&gt;';
-                        html += '&lt;/div&gt;';
-                        // Application functions
-                        var funcMap = {}; collectFromProcs(c.processes, 'appFunctions', funcMap);
-                        var funcs = Object.keys(funcMap).map(function(k){ return funcMap[k]; });
-                        html += '&lt;div class="box box-func"&gt;&lt;div class="box-title"&gt;Application Functions&lt;/div&gt;';
-                        if (funcs.length) { funcs.forEach(function(fn){ html += '&lt;span class="pill func" title="' + esc(fn.description) + '"&gt;' + esc(fn.name) + '&lt;/span&gt;'; }); }
-                        else html += '&lt;span class="empty-note"&gt;None&lt;/span&gt;';
-                        html += '&lt;/div&gt;';
-                        // Application services
-                        var svcMap = {}; collectFromProcs(c.processes, 'services', svcMap);
-                        var svcs = Object.keys(svcMap).map(function(k){ return svcMap[k]; });
-                        html += '&lt;div class="box box-svc"&gt;&lt;div class="box-title"&gt;Application Services&lt;/div&gt;';
-                        if (svcs.length) { svcs.forEach(function(s){ html += '&lt;span class="pill svc" title="' + esc(s.description) + '"&gt;' + esc(s.name) + '&lt;/span&gt;'; }); }
-                        else html += '&lt;span class="empty-note"&gt;None&lt;/span&gt;';
-                        html += '&lt;/div&gt;';
-                        // Applications
-                        var appMap = {}; collectFromProcs(c.processes, 'apps', appMap);
-                        var apps = Object.keys(appMap).map(function(k){ return appMap[k]; });
-                        html += '&lt;div class="box box-app"&gt;&lt;div class="box-title"&gt;Applications&lt;/div&gt;';
-                        if (apps.length) { apps.forEach(function(a){ html += '&lt;span class="pill app clickable" onclick="openApp(\'' + a.id + '\')"&gt;' + esc(a.name) + '&lt;/span&gt;'; }); }
-                        else html += '&lt;span class="empty-note"&gt;None&lt;/span&gt;';
-                        html += '&lt;/div&gt;';
+                        if (!diag.empty){
+                            html += '&lt;div class="legend"&gt;&lt;span&gt;&lt;i style="background:#EDE4FF"&gt;&lt;/i&gt;Capability&lt;/span&gt;&lt;span&gt;&lt;i style="background:#FFF4E5"&gt;&lt;/i&gt;Physical Process&lt;/span&gt;&lt;span&gt;&lt;i style="background:#E7F8EF"&gt;&lt;/i&gt;Application&lt;/span&gt;&lt;/div&gt;';
+                            html += diag.html;
+                        } else {
+                            html += '&lt;div class="diag-empty"&gt;No business processes for this capability link through to an application.&lt;/div&gt;';
+                        }
                         html += '&lt;/div&gt;&lt;/div&gt;';
+                        PENDING.push({bodyId: bodyId, links: diag.links});
                         return html;
                     }
 
                     function renderStream(vs){
                         var container = document.getElementById('stageTrack');
-                        if (!vs.stages.length){ container.innerHTML = '&lt;div class="no-data"&gt;This value stream has no stages.&lt;/div&gt;'; return; }
+                        PENDING = [];
+                        var stages = vs.stages.filter(function(st){ return ACTIVE_STAGES[st.id] !== false; });
+                        if (!stages.length){ container.innerHTML = '&lt;div class="no-data"&gt;No stages selected. Tick one or more stages above.&lt;/div&gt;'; return; }
                         var uid = 0;
                         var html = '';
-                        vs.stages.forEach(function(st){
+                        stages.forEach(function(st){
                             html += '&lt;div class="stage-col"&gt;';
                             html += '&lt;div class="stage-head"&gt;&lt;span class="stage-index"&gt;' + esc(st.index || '') + '&lt;/span&gt;&lt;span&gt;' + esc(st.name) + '&lt;/span&gt;&lt;/div&gt;';
                             html += '&lt;div class="stage-body"&gt;';
@@ -406,7 +410,7 @@
                                 html += '&lt;div class="stage-cap-count"&gt;' + st.caps.length + ' capability' + (st.caps.length===1?'':'ies') + '&lt;/div&gt;';
                                 st.caps.forEach(function(c){ c.uid = 'u' + (uid++); html += renderCapCard(c); });
                             } else {
-                                html += '&lt;div class="empty-note"&gt;No linked capabilities&lt;/div&gt;';
+                                html += '&lt;div class="diag-empty"&gt;No linked capabilities&lt;/div&gt;';
                             }
                             html += '&lt;/div&gt;&lt;/div&gt;';
                         });
@@ -419,12 +423,42 @@
                         var isOpen = body.classList.contains('open');
                         body.classList.toggle('open', !isOpen);
                         headEl.classList.toggle('open', !isOpen);
+                        if (!isOpen){
+                            var pend = PENDING.find(function(p){ return p.bodyId === bodyId; });
+                            if (pend){ var dg = body.querySelector('.diagram'); if (dg) setTimeout(function(){ drawLinks(dg, pend.links); }, 30); }
+                        }
+                    }
+
+                    var ACTIVE_STAGES = {}; // stageId -> bool
+                    var CURRENT_VS = null;
+
+                    function buildStageFilter(vs){
+                        CURRENT_VS = vs;
+                        ACTIVE_STAGES = {};
+                        var wrap = document.getElementById('stageChecks');
+                        var html = '';
+                        vs.stages.forEach(function(st){
+                            ACTIVE_STAGES[st.id] = true;
+                            html += '&lt;label class="sf-chk"&gt;&lt;input type="checkbox" checked="checked" data-stage="' + st.id + '" onchange="onStageToggle(this)"/&gt;&lt;span class="sf-idx"&gt;' + esc(st.index||'') + '&lt;/span&gt;' + esc(st.name) + '&lt;/label&gt;';
+                        });
+                        wrap.innerHTML = html || '&lt;span class="diag-empty"&gt;This value stream has no stages.&lt;/span&gt;';
+                    }
+
+                    function onStageToggle(cb){
+                        ACTIVE_STAGES[cb.getAttribute('data-stage')] = cb.checked;
+                        if (CURRENT_VS) renderStream(CURRENT_VS);
+                    }
+                    function setAllStages(val){
+                        var boxes = document.querySelectorAll('#stageChecks input[type=checkbox]');
+                        for (var i=0;i&lt;boxes.length;i++){ boxes[i].checked = val; ACTIVE_STAGES[boxes[i].getAttribute('data-stage')] = val; }
+                        if (CURRENT_VS) renderStream(CURRENT_VS);
                     }
 
                     function selectStream(id){
                         var vs = STREAMS.find(function(s){ return s.id === id; });
                         if (!vs) return;
                         document.getElementById('vsDesc').innerHTML = vs.description ? esc(vs.description) : '';
+                        buildStageFilter(vs);
                         renderStream(vs);
                     }
 
@@ -445,11 +479,19 @@
             <body>
                 <xsl:call-template name="Heading"/>
                 <div class="view-wrapper">
-                    <h1>UCL Value Stream &#8594; Capability Explorer</h1>
-                    <p class="subtitle">Pick a value stream to see its stages in sequence. Under each stage are the Level 1 business capabilities it requires; expand a capability to see its sub-capabilities, ordered processes and activities, application functions, services and supporting applications.</p>
-                    <div class="vs-select-row">
-                        <label for="vsSelect">Value stream:</label>
-                        <select id="vsSelect"/>
+                    <h1>UCL Value Stream &#8594; Capability Flow</h1>
+                    <p class="subtitle">Pick a value stream and the stages you want to see. Under each stage are its Level 1 capabilities; expand one to see the linked chain drawn as a vertical diagram: Capability at the top, the Physical Processes that realise it in the middle, and the supporting Applications at the bottom. Physical processes that don't reach an application are hidden.</p>
+                    <div class="controls">
+                        <div class="vs-select-row">
+                            <label for="vsSelect">Value stream:</label>
+                            <select id="vsSelect"/>
+                        </div>
+                        <div class="stage-filter">
+                            <div class="sf-title">Stages
+                                <span class="sf-actions"><a onclick="setAllStages(true)">Select all</a><a onclick="setAllStages(false)">Clear</a></span>
+                            </div>
+                            <div class="sf-checks" id="stageChecks"/>
+                        </div>
                     </div>
                     <div class="vs-desc" id="vsDesc"/>
                     <div class="stage-track" id="stageTrack"><p>Loading value streams...</p></div>
