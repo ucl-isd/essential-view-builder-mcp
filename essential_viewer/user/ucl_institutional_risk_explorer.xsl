@@ -93,10 +93,11 @@
                     .roadmap-links{display:flex;gap:10px;flex-wrap:wrap}
                     .roadmap-link{display:inline-block;background:#993AFF;color:#fff;text-decoration:none;padding:9px 16px;border-radius:6px;font-weight:600;font-size:1rem}
                     .roadmap-link:hover{background:#7d1fe0;color:#fff}
-                    table.causes-table{width:100%;border-collapse:collapse}
+                    table.causes-table{width:100%;border-collapse:collapse;table-layout:fixed}
                     table.causes-table{font-size:1.15rem}
+                    table.causes-table th,table.causes-table td{width:50%}
                     table.causes-table th{background:#361A54;color:#fff;text-align:left;padding:12px 14px;font-weight:600;font-size:1.15rem}
-                    table.causes-table td{padding:12px 14px;border-bottom:1px solid #E5E7EB;vertical-align:top}
+                    table.causes-table td{padding:12px 14px;border-bottom:1px solid #E5E7EB;vertical-align:top;word-wrap:break-word;overflow-wrap:break-word}
                     .cause-name{color:#361A54;font-weight:600;cursor:pointer;text-decoration:none}
                     .cause-name:hover{text-decoration:underline;color:#993AFF}
                     .cause-detail{background:#FAF7FF;border:1px solid #DDBDFF;border-radius:6px;padding:14px 16px;margin-top:8px}
@@ -105,9 +106,10 @@
                     .cause-detail li{margin-bottom:4px}
                     .control-name{color:#361A54;font-weight:600;cursor:pointer;text-decoration:none}
                     .control-name:hover{text-decoration:underline;color:#993AFF}
-                    .control-detail{background:#FAF7FF;border:1px solid #DDBDFF;border-radius:6px;padding:10px 12px;margin:6px 0 10px 0;color:#333;font-size:0.95rem;line-height:1.45}
+                    .control-detail{background:#FAF7FF;border:1px solid #DDBDFF;border-radius:6px;padding:12px 14px;margin:6px 0 10px 0;color:#333;font-size:1.15rem;line-height:1.55}
                     .control-rag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.85rem;font-weight:700;vertical-align:middle}
                     .assessments{display:flex;gap:16px;flex-wrap:wrap}
+                    .assessments-row{margin-top:20px;align-items:flex-start}
                     .assessment-card{flex:1;min-width:260px;border:1px solid #E5E7EB;border-radius:8px;padding:16px;background:#fff}
                     .assessment-card .ac-type{font-size:1.3rem;font-weight:700;color:#361A54}
                     .assessment-card .ac-date{font-size:1.05rem;color:#6B7280;margin-bottom:12px}
@@ -134,6 +136,36 @@
                     .m-red{background:#E5352B}
                     .x-axis-title{text-align:center;font-weight:700;color:#361A54;margin-top:4px;padding-left:70px}
                     .marker{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#1F3A93;color:#fff;font-weight:700;font-size:0.95rem;margin:2px;box-shadow:0 1px 4px rgba(0,0,0,0.4)}
+                    /* DSP toggle */
+                    .dsp-toggle-row{display:flex;align-items:center;gap:12px;margin:16px 0 0 0}
+                    .dsp-toggle{position:relative;display:inline-block;width:52px;height:28px;flex-shrink:0}
+                    .dsp-toggle input{opacity:0;width:0;height:0}
+                    .dsp-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#C7C7CF;border-radius:28px;transition:background 0.2s}
+                    .dsp-slider:before{content:'';position:absolute;height:22px;width:22px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform 0.2s}
+                    .dsp-toggle input:checked + .dsp-slider{background:#993AFF}
+                    .dsp-toggle input:checked + .dsp-slider:before{transform:translateX(24px)}
+                    .dsp-toggle-label{font-size:1.1rem;font-weight:600;color:#361A54}
+                    .assessment-card-dsp{border-color:#993AFF;box-shadow:0 0 0 1px #993AFF inset}
+                    .dsp-controls{margin-top:14px;padding-top:12px;border-top:1px dashed #DDBDFF}
+                    .dsp-controls-head{font-size:1rem;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280;font-weight:700;margin-bottom:8px}
+                    .support-head{font-size:0.85rem;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280;font-weight:700;margin:6px 0 6px 0}
+                    .support-list{display:flex;flex-direction:column;gap:6px}
+                    .support-item{display:block;background:#F5F0FF;border:1px solid #DDBDFF;border-radius:6px;padding:8px 12px;color:#361A54;font-weight:600;cursor:pointer;text-decoration:none;font-size:0.95rem}
+                    .support-item:hover{background:#EDE4FF;color:#7d1fe0}
+                    /* Right pop-out sidebar */
+                    .sb-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.35);z-index:999;display:none}
+                    .sb-overlay.open{display:block}
+                    .sidebar{position:fixed;top:0;right:-480px;width:460px;max-width:92vw;height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,0.18);z-index:1000;transition:right 0.3s ease;overflow-y:auto;padding:28px}
+                    .sidebar.open{right:0}
+                    .sb-close{position:absolute;top:14px;right:16px;font-size:24px;cursor:pointer;color:#6B7280;background:none;border:none}
+                    .sb-kicker{display:inline-block;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;color:#fff;background:#993AFF;padding:4px 12px;border-radius:20px;margin-bottom:10px}
+                    .sb-title{color:#361A54;margin:0 0 14px 0;padding-right:30px;font-size:1.5rem;font-weight:700}
+                    .sb-summary-btn{display:inline-block;background:#993AFF;color:#fff;text-decoration:none;padding:9px 18px;border-radius:6px;font-weight:600;font-size:1.05rem;margin-bottom:20px}
+                    .sb-summary-btn:hover{background:#7d1fe0;color:#fff}
+                    .sb-row{margin-bottom:16px}
+                    .sb-label{font-size:0.85rem;text-transform:uppercase;letter-spacing:0.04em;color:#6B7280;font-weight:700;margin-bottom:4px}
+                    .sb-value{font-size:1.15rem;color:#222;line-height:1.55}
+                    .sb-empty{color:#9CA3AF;font-style:italic}
                 </style>
                 <script type="text/javascript">
                     // ===== Embedded risk data from XSL =====
@@ -182,12 +214,52 @@
                             "impactValue":"<xsl:value-of select="eas:jsonText(string($impact/own_slot_value[slot_reference='enumeration_value']/value))"/>",
                             "impactScore":<xsl:choose><xsl:when test="$impact/own_slot_value[slot_reference='enumeration_score']/value"><xsl:value-of select="$impact/own_slot_value[slot_reference='enumeration_score']/value"/></xsl:when><xsl:otherwise>-1</xsl:otherwise></xsl:choose>
                             }<xsl:if test="not(position()=last())">,</xsl:if>
-                        </xsl:for-each>]
+                        </xsl:for-each>],
+                        <!-- Controls attached directly to the main risk (risk_related_control) - surfaced under the DSP assessment -->
+                        <xsl:variable name="riskCtrls" select="$allControls[name=$thisRisk/own_slot_value[slot_reference='risk_related_control']/value]"/>
+                        "riskControls":[<xsl:for-each select="$riskCtrls">
+                            <xsl:variable name="rc" select="current()"/>
+                            <xsl:variable name="rcPMs" select="$allPerfMeasures[name=$rc/own_slot_value[slot_reference='performance_measures']/value]"/>
+                            <xsl:variable name="rcVal" select="$allSQValues[name=$rcPMs/own_slot_value[slot_reference='pm_performance_value']/value][1]"/>
+                            <!-- control_related_support -> Enterprise_Strategic_Plan items shown as clickable support links -->
+                            <xsl:variable name="rcSupport" select="$allPlans[name=$rc/own_slot_value[slot_reference='control_related_support']/value]"/>
+                            {"name":"<xsl:value-of select="eas:jsonText(string($rc/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string($rc/own_slot_value[slot_reference='description']/value))"/>","effectiveness":"<xsl:value-of select="eas:jsonText(string($rcVal/own_slot_value[slot_reference='name']/value))"/>","support":[<xsl:for-each select="$rcSupport">{"id":"<xsl:value-of select="eas:jsonText(string(current()/name))"/>","name":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='description']/value))"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]
                         }<xsl:if test="not(position()=last())">,</xsl:if>
                     </xsl:for-each>];
 
                     var ROADMAP_VIEW = 'user/UCL_strategic_plan_roadmaps_attibutes.xsl';
                     var INSTITUTIONAL_CATEGORY = 'UCL Strategic Risk Area';
+
+                    // DSP assessment toggle - per risk, off by default. When off for a risk, its DSP
+                    // assessment is hidden from the matrix and the cards, and the DSP control block is not shown.
+                    var DSP_ON = {};
+                    function dspOn(riskId) { return DSP_ON[riskId] === true; }
+                    function isDspAssessment(a) { return /\bdsp\b/i.test(a.type || ''); }
+
+                    // Index strategic plans referenced by DSP control support, for the pop-out sidebar
+                    var PLAN_BY_ID = {};
+                    RISKS.forEach(function(r){
+                        (r.riskControls||[]).forEach(function(ctrl){
+                            (ctrl.support||[]).forEach(function(sp){ PLAN_BY_ID[sp.id] = sp; });
+                        });
+                    });
+
+                    function openPlan(id) {
+                        var p = PLAN_BY_ID[id];
+                        if (!p) return;
+                        var html = '&lt;div class="sb-kicker"&gt;Strategic Plan&lt;/div&gt;';
+                        html += '&lt;h2 class="sb-title"&gt;' + esc(p.name) + '&lt;/h2&gt;';
+                        var url = 'report?XML=reportXML.xml&amp;PMA=' + encodeURIComponent(p.id) + '&amp;cl=en-gb';
+                        html += '&lt;a class="sb-summary-btn" href="' + url + '" target="_blank"&gt;Open full strategic plan &#8594;&lt;/a&gt;';
+                        html += '&lt;div class="sb-row"&gt;&lt;div class="sb-label"&gt;Description&lt;/div&gt;&lt;div class="sb-value"&gt;' + (p.description ? esc(p.description) : '&lt;span class="sb-empty"&gt;No description recorded&lt;/span&gt;') + '&lt;/div&gt;&lt;/div&gt;';
+                        document.getElementById('sidebarContent').innerHTML = html;
+                        document.getElementById('sidebar').classList.add('open');
+                        document.getElementById('sbOverlay').classList.add('open');
+                    }
+                    function closeSidebar() {
+                        document.getElementById('sidebar').classList.remove('open');
+                        document.getElementById('sbOverlay').classList.remove('open');
+                    }
 
                     function institutionalRisks() {
                         return RISKS.filter(function(r) { return r.category === INSTITUTIONAL_CATEGORY; });
@@ -254,7 +326,12 @@
                     function residualSeverity(r) {
                         if (!r.assessments || r.assessments.length === 0) return null;
                         var a = r.assessments.find(function(x){ return /residual/i.test(x.type); });
-                        if (!a) a = r.assessments[r.assessments.length - 1];
+                        if (!a) {
+                            // fall back to the last non-DSP assessment (DSP only counts when toggled on for this risk)
+                            var pool = r.assessments.filter(function(x){ return dspOn(r.id) || !isDspAssessment(x); });
+                            a = pool[pool.length - 1];
+                        }
+                        if (!a) return null;
                         var col = likelihoodCol(a.probability);
                         if (a.impactScore &lt; 1 || col &lt; 1) return null;
                         return severityBand(a.impactScore * col);
@@ -268,15 +345,17 @@
                         // Determine which cell each assessment sits in
                         var markers = {}; // key "impact-likelihood" -> array of letters
                         r.assessments.forEach(function(a){
+                            if (isDspAssessment(a) &amp;&amp; !dspOn(r.id)) return; // hide DSP marker when toggle off for this risk
                             var col = likelihoodCol(a.probability);
                             if (a.impactScore &lt; 1 || col &lt; 1) return;
-                            var letter = /inherent/i.test(a.type) ? 'I' : (/residual/i.test(a.type) ? 'R' : a.type.charAt(0).toUpperCase());
+                            var letter = /inherent/i.test(a.type) ? 'I' : (/residual/i.test(a.type) ? 'R' : (isDspAssessment(a) ? 'D' : a.type.charAt(0).toUpperCase()));
                             var key = a.impactScore + '-' + col;
                             if (!markers[key]) markers[key] = [];
                             markers[key].push(letter);
                         });
 
-                        var html = '&lt;div class="matrix-title"&gt;Risk Heatmap &lt;span style="font-weight:400;color:#6B7280;"&gt;(I = Inherent, R = Residual)&lt;/span&gt;&lt;/div&gt;';
+                        var legendText = dspOn(r.id) ? '(I = Inherent, R = Residual, D = DSP)' : '(I = Inherent, R = Residual)';
+                        var html = '&lt;div class="matrix-title"&gt;Risk Heatmap &lt;span style="font-weight:400;color:#6B7280;"&gt;' + legendText + '&lt;/span&gt;&lt;/div&gt;';
                         html += '&lt;div class="matrix-wrap"&gt;';
                         html += '&lt;div class="y-axis-label"&gt;Impact&lt;/div&gt;';
                         html += '&lt;div&gt;&lt;table class="matrix-grid"&gt;&lt;tbody&gt;';
@@ -371,33 +450,68 @@
                     function buildCard(r) {
                         var html = '';
 
-                        // Risk Assessment (moved to top) - matrix and detail side by side
+                        // Risk Assessment - top: matrix + impacts side by side; then per-risk DSP toggle; then assessment cards in a row
                         html += '&lt;div class="card-section"&gt;&lt;h3&gt;Risk Assessment&lt;/h3&gt;';
+                        // Top row: matrix (left) and impacts (right)
                         html += '&lt;div class="assessment-layout"&gt;';
-                        html += '&lt;div class="matrix-col"&gt;' + renderMatrix(r) + '&lt;/div&gt;';
+                        html += '&lt;div class="matrix-col"&gt;' + renderMatrix(r);
+                        // Per-risk DSP toggle sits under the matrix
+                        html += '&lt;div class="dsp-toggle-row"&gt;&lt;label class="dsp-toggle"&gt;&lt;input type="checkbox"' + (dspOn(r.id) ? ' checked="checked"' : '') + ' onchange="toggleDsp(this, \'' + r.id + '\')"/&gt;&lt;span class="dsp-slider"&gt;&lt;/span&gt;&lt;/label&gt;&lt;span class="dsp-toggle-label"&gt;Show DSP assessment &amp;amp; its related controls&lt;/span&gt;&lt;/div&gt;';
+                        html += '&lt;/div&gt;'; // matrix-col
                         html += '&lt;div class="assessment-detail-col"&gt;';
-                        if (r.assessments.length &gt; 0) {
-                            html += '&lt;div class="assessments"&gt;';
-                            r.assessments.forEach(function(a){
-                                var iCls = impactRag(a.impactScore);
-                                var band = probabilityBand(a.probability);
-                                html += '&lt;div class="assessment-card"&gt;';
-                                html += '&lt;div class="ac-type"&gt;' + esc(a.type || 'Assessment') + '&lt;/div&gt;';
-                                html += '&lt;div class="ac-date"&gt;' + esc(a.date || '') + '&lt;/div&gt;';
-                                html += '&lt;div class="rag-row"&gt;&lt;span class="rag-label"&gt;Impact&lt;/span&gt;&lt;span class="rag-badge ' + iCls + '"&gt;' + esc(a.impactValue || 'Not set') + (a.impactScore &gt; 0 ? ' (' + a.impactScore + ')' : '') + '&lt;/span&gt;&lt;/div&gt;';
-                                html += '&lt;div class="rag-row"&gt;&lt;span class="rag-label"&gt;Likelihood&lt;/span&gt;&lt;span class="rag-badge ' + band.cls + '"&gt;' + band.label + (a.probability &gt;= 0 ? ' (' + a.probability + ')' : '') + '&lt;/span&gt;&lt;/div&gt;';
-                                html += '&lt;/div&gt;';
-                            });
-                            html += '&lt;/div&gt;';
-                        } else {
-                            html += '&lt;p style="color:#6B7280;"&gt;No risk assessments recorded.&lt;/p&gt;';
-                        }
-                        // Impacts on the right, below the assessment detail
                         html += '&lt;div class="impacts-block"&gt;&lt;h4 class="impacts-head"&gt;Impacts&lt;/h4&gt;';
                         html += renderImpacts(r.description || r.shortDescription || '');
                         html += '&lt;/div&gt;';
                         html += '&lt;/div&gt;'; // assessment-detail-col
                         html += '&lt;/div&gt;'; // assessment-layout
+                        // Assessment cards in a row below the matrix
+                        var visibleAssessments = r.assessments.filter(function(a){ return dspOn(r.id) || !isDspAssessment(a); });
+                        if (visibleAssessments.length &gt; 0) {
+                            html += '&lt;div class="assessments assessments-row"&gt;';
+                            visibleAssessments.forEach(function(a){
+                                var iCls = impactRag(a.impactScore);
+                                var band = probabilityBand(a.probability);
+                                var isDsp = isDspAssessment(a);
+                                html += '&lt;div class="assessment-card' + (isDsp ? ' assessment-card-dsp' : '') + '"&gt;';
+                                html += '&lt;div class="ac-type"&gt;' + esc(a.type || 'Assessment') + '&lt;/div&gt;';
+                                html += '&lt;div class="ac-date"&gt;' + esc(a.date || '') + '&lt;/div&gt;';
+                                html += '&lt;div class="rag-row"&gt;&lt;span class="rag-label"&gt;Impact&lt;/span&gt;&lt;span class="rag-badge ' + iCls + '"&gt;' + esc(a.impactValue || 'Not set') + (a.impactScore &gt; 0 ? ' (' + a.impactScore + ')' : '') + '&lt;/span&gt;&lt;/div&gt;';
+                                html += '&lt;div class="rag-row"&gt;&lt;span class="rag-label"&gt;Likelihood&lt;/span&gt;&lt;span class="rag-badge ' + band.cls + '"&gt;' + band.label + (a.probability &gt;= 0 ? ' (' + a.probability + ')' : '') + '&lt;/span&gt;&lt;/div&gt;';
+                                // When this is the DSP assessment and the toggle is on for this risk, show the risk's related controls beneath it
+                                if (isDsp &amp;&amp; dspOn(r.id)) {
+                                    html += '&lt;div class="dsp-controls"&gt;&lt;div class="dsp-controls-head"&gt;Related controls&lt;/div&gt;';
+                                    if (r.riskControls &amp;&amp; r.riskControls.length &gt; 0) {
+                                        r.riskControls.forEach(function(ctrl, ci){
+                                            var cid = r.id + '-dspctrl-' + ci;
+                                            var rag = controlRag(ctrl.effectiveness);
+                                            var ragBadge = rag ? ' &lt;span class="control-rag" style="background:' + rag.bg + ';color:' + rag.fg + ';"&gt;' + esc(rag.label) + '&lt;/span&gt;' : '';
+                                            html += '&lt;div&gt;&lt;a class="control-name" onclick="toggleControl(\'' + cid + '\')"&gt;' + esc(ctrl.name) + '&lt;/a&gt;' + ragBadge;
+                                            html += '&lt;div id="control-' + cid + '" class="control-detail" style="display:none;"&gt;';
+                                            if (ctrl.description) html += '&lt;div style="margin-bottom:8px;"&gt;' + esc(ctrl.description) + '&lt;/div&gt;';
+                                            // Supporting strategic plans (control_related_support) - clickable, open in sidebar
+                                            html += '&lt;div class="support-head"&gt;Supporting strategic plans&lt;/div&gt;';
+                                            if (ctrl.support &amp;&amp; ctrl.support.length &gt; 0) {
+                                                html += '&lt;div class="support-list"&gt;';
+                                                ctrl.support.forEach(function(sp){
+                                                    html += '&lt;a class="support-item" onclick="openPlan(\'' + sp.id + '\')"&gt;' + esc(sp.name) + '&lt;/a&gt;';
+                                                });
+                                                html += '&lt;/div&gt;';
+                                            } else {
+                                                html += '&lt;p style="color:#6B7280;margin:4px 0 0 0;"&gt;None recorded.&lt;/p&gt;';
+                                            }
+                                            html += '&lt;/div&gt;&lt;/div&gt;';
+                                        });
+                                    } else {
+                                        html += '&lt;p style="color:#6B7280;margin:4px 0 0 0;"&gt;No related controls recorded for this risk.&lt;/p&gt;';
+                                    }
+                                    html += '&lt;/div&gt;';
+                                }
+                                html += '&lt;/div&gt;';
+                            });
+                            html += '&lt;/div&gt;'; // assessments-row
+                        } else {
+                            html += '&lt;p style="color:#6B7280;"&gt;No risk assessments recorded.&lt;/p&gt;';
+                        }
                         html += '&lt;/div&gt;'; // card-section
 
                         // Stakeholders now shown in the list header (see renderStakeholderCards)
@@ -471,6 +585,19 @@
                         el.style.display = (el.style.display === 'none') ? 'block' : 'none';
                     }
 
+                    // Toggle the DSP assessment on/off for a single risk and re-render just that card body
+                    function toggleDsp(cb, riskId) {
+                        DSP_ON[riskId] = cb.checked;
+                        var r = RISKS.find(function(x){ return x.id === riskId; });
+                        var body = document.getElementById('body-' + riskId);
+                        if (r &amp;&amp; body) {
+                            body.innerHTML = buildCard(r);
+                            body.style.display = 'block';
+                            var caret = document.getElementById('caret-' + riskId);
+                            if (caret) caret.innerHTML = '&#9662;';
+                        }
+                    }
+
                     $(document).ready(function() {
                         console.log('All risks:', RISKS);
                         console.log('Institutional risks:', institutionalRisks());
@@ -485,6 +612,11 @@
                     <p class="subtitle">Institutional risks in the "UCL Strategic Risk Area" category. Click a risk to open its risk card.</p>
                     <p class="treatment-link"><a href="https://teams.microsoft.com/l/entity/com.microsoft.teamspace.tab.planner/mytasks?tenantId=1faf88fe-a998-4c5b-93c9-210a11d9a5c2&amp;webUrl=https%3A%2F%2Ftasks.teams.microsoft.com%2Fteamsui%2FpersonalApp%2Falltasklists&amp;context=%7B%22subEntityId%22%3A%22%2Fv1%2Fplan%2FH-l0-yWoQ0aqLSfZWNfBAZYAHDra%22%7D" target="_blank">Risk Treatment Plan</a></p>
                     <div class="risk-list" id="riskList"><p>Loading risks...</p></div>
+                </div>
+                <div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"/>
+                <div class="sidebar" id="sidebar">
+                    <button class="sb-close" onclick="closeSidebar()">x</button>
+                    <div id="sidebarContent"/>
                 </div>
                 <xsl:call-template name="Footer"/>
             </body>
