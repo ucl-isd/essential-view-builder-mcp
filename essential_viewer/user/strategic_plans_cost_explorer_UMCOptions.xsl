@@ -25,9 +25,6 @@
     <xsl:key name="costsByElement" match="/node()/simple_instance[type='Cost']" use="own_slot_value[slot_reference='cost_for_elements']/value"/>
     <xsl:key name="componentsByCost" match="/node()/simple_instance[type='Adhoc_Cost_Component' or type='Annual_Cost_Component']" use="own_slot_value[slot_reference='cc_cost_component_of_cost']/value"/>
 
-    <!-- Risk coverage: PLAN_TO_ELEMENT_RELATION links a plan to EA elements (incl. Risks) -->
-    <xsl:variable name="allRisks" select="/node()/simple_instance[type='Risk']"/>
-    <xsl:key name="p2eByPlan" match="/node()/simple_instance[type='PLAN_TO_ELEMENT_RELATION']" use="own_slot_value[slot_reference='plan_to_element_plan']/value"/>
 
     <xsl:template match="knowledge_base">
         <xsl:call-template name="docType"/>
@@ -112,12 +109,6 @@
                     .funding-table td.pos{color:#1AAB40}
                     .funding-table td.neg{color:#DC2626}
                     .funding-caption{font-weight:700;color:#361A54;margin-bottom:8px;font-size:1.1rem}
-                    .risk-coverage{background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px;padding:15px 20px;margin-bottom:20px}
-                    .risk-coverage .rc-title{font-weight:700;color:#361A54;margin-bottom:10px;font-size:1.1rem}
-                    .risk-chips{display:flex;flex-wrap:wrap;gap:8px}
-                    .risk-chip{display:inline-block;padding:5px 10px;border-radius:5px;font-size:1rem;font-weight:600}
-                    .risk-chip.covered{background:#993AFF;color:#FFFFFF}
-                    .risk-chip.uncovered{background:#EEDEFF;color:#9CA3AF}
                     .removed-plans{background:#FFFFFF;border:1px solid #E5E7EB;border-radius:8px;padding:15px 20px;margin-bottom:30px}
                     .removed-plans .rp-title{font-weight:700;color:#361A54;margin-bottom:10px;font-size:1.1rem}
                     .removed-plans ul{margin:0;padding-left:20px;columns:2;column-gap:30px}
@@ -147,7 +138,7 @@
 
                     // ===== UMC Options: each can be toggled on to apply its cost change =====
                     var OPTIONS = [
-                        {id:1, initiatives:['R005'], summary:'Reduction of compute for the Research Computing Platform by 25%', option:'Reduce by 25%',
+                        {id:1, initiatives:['R005'], summary:'Reduction of compute resources for research by 25%', option:'Reduce by 25%',
                          impact:'The current compute investment proposed in the DSP falls behind the academic ambition for AI and compute-intensive research needs, particularly for AI focused infrastructure. Under the enhanced roadmap, we planned to bridge this gap through cost recovery by faculties. Any further reduction would undermine the viability of this model and put the overall ambition beyond reach.'},
                         {id:2, initiatives:['S094','S097','S119'], summary:'ERP - Accelerate transformation', option:'Spread year 4 and 5 costs over 1 - 3 for S094, S097, S119',
                          impact:'Earliest and most complete route to simpler processes, stronger controls, trusted data, improved reporting and aligned HR/Finance services. Highest delivery complexity, change impact and operational disruption. Requires exceptional leadership alignment, protected SME capacity, process ownership and data readiness.'},
@@ -183,17 +174,6 @@
 
                     // Embedded performance measures from XSL
                     var planPerfMeasures = [<xsl:for-each select="$allStrategicPlans"><xsl:variable name="thisPlanPerfMeasures" select="$planPerfMeasureInstances[name=current()/own_slot_value[slot_reference='performance_measures']/value]"/><xsl:if test="$thisPlanPerfMeasures">{"id":"<xsl:value-of select="eas:getSafeJSString(current()/name)"/>","measures":[<xsl:for-each select="$thisPlanPerfMeasures"><xsl:variable name="thisCat" select="$planPerfCategories[name=current()/own_slot_value[slot_reference='pm_category']/value]"/><xsl:variable name="thisSQV" select="$planSQValues[name=current()/own_slot_value[slot_reference='pm_performance_value']/value][1]"/>{"category":"<xsl:value-of select="eas:getSafeJSString(string($thisCat[1]/own_slot_value[slot_reference='name']/value))"/>","value":"<xsl:value-of select="eas:getSafeJSString(string($thisSQV/own_slot_value[slot_reference='name']/value))"/>","score":"<xsl:value-of select="$thisSQV/own_slot_value[slot_reference='service_quality_value_score']/value"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]}<xsl:if test="not(position()=last())">,</xsl:if></xsl:if></xsl:for-each>];
-
-                    // Embedded per-plan risks addressed (via PLAN_TO_ELEMENT_RELATION -> Risk)
-                    var planRisks = [<xsl:for-each select="$allStrategicPlans"><xsl:variable name="thisP2Es" select="key('p2eByPlan', current()/name)"/><xsl:variable name="impactedIds" select="$thisP2Es/own_slot_value[slot_reference='plan_to_element_ea_element']/value"/><xsl:variable name="thisRisks" select="$allRisks[name=$impactedIds]"/><xsl:if test="$thisRisks">{"id":"<xsl:value-of select="eas:getSafeJSString(current()/name)"/>","risks":[<xsl:for-each select="$thisRisks">"<xsl:value-of select="eas:getSafeJSString(string(current()/own_slot_value[slot_reference='name']/value))"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]}<xsl:if test="not(position()=last())">,</xsl:if></xsl:if></xsl:for-each>];
-
-                    // All SR (Strategic Risk) names for the coverage indicator
-                    var allSRRisks = [<xsl:for-each select="$allRisks[starts-with(own_slot_value[slot_reference='name']/value, 'SR')]"><xsl:sort select="own_slot_value[slot_reference='name']/value" order="ascending"/>"<xsl:value-of select="eas:getSafeJSString(string(current()/own_slot_value[slot_reference='name']/value))"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>];
-
-                    function getPlanRisks(planId) {
-                        var entry = planRisks.find(function(pr) { return pr.id === planId; });
-                        return (entry &amp;&amp; entry.risks) ? entry.risks : [];
-                    }
 
                     $(document).ready(function() {
                         var apiList = ['planDataAPI'];
@@ -585,7 +565,6 @@
 
                     function renderView() {
                         var plans = filterPlans();
-                        renderRiskCoverage(plans);
                         renderRemovedPlans(plans);
                         if (plans.length === 0) {
                             document.getElementById('roadmapArea').innerHTML = '&lt;div class="no-data"&gt;No strategic plans match the current filters.&lt;/div&gt;';
@@ -652,26 +631,6 @@
                         });
                         document.getElementById('roadmapArea').innerHTML = html;
                         updateSummary(plans);
-                    }
-
-                    function renderRiskCoverage(plans) {
-                        var container = document.getElementById('riskCoverage');
-                        var chips = document.getElementById('riskChips');
-                        if (!allSRRisks || allSRRisks.length === 0) {
-                            container.style.display = 'none';
-                            return;
-                        }
-                        var html = '';
-                        allSRRisks.forEach(function(risk) {
-                            var count = 0;
-                            plans.forEach(function(plan) {
-                                if (getPlanRisks(plan.id).indexOf(risk) !== -1) count++;
-                            });
-                            var cls = count &gt; 0 ? 'risk-chip covered' : 'risk-chip uncovered';
-                            html += '&lt;span class="' + cls + '"&gt;' + risk + ' (' + count + ')&lt;/span&gt;';
-                        });
-                        chips.innerHTML = html;
-                        container.style.display = 'block';
                     }
 
                     function renderRemovedPlans(filteredPlans) {
@@ -905,10 +864,6 @@
                     </div>
                     <div class="annual-costs" id="annualCosts"/>
                     <div id="fundingArea"/>
-                    <div class="risk-coverage" id="riskCoverage" style="display:none;">
-                        <div class="rc-title">Strategic Risk Coverage &#8212; plans in view addressing each risk</div>
-                        <div class="risk-chips" id="riskChips"/>
-                    </div>
                     <div class="filters-bar">
                         <div><label for="filterRoadmap">Roadmap:</label><select id="filterRoadmap"><option value="all">All Roadmaps</option></select></div>
                         <div><label for="filterPriority">Priority:</label><select id="filterPriority"><option value="all">All Priorities</option></select></div>
