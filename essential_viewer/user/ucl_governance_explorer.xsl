@@ -101,6 +101,9 @@
                     /* ===== Top-down org chart ===== */
                     .tree-scroll{overflow-x:auto;padding:20px 10px 40px 10px}
                     .tree, .tree ul{list-style:none;margin:0;padding:0}
+                    /* Size the tree to its content and centre with auto margins so the scroll container
+                       can reach all of it (no unreachable left overflow from justify-content:center). */
+                    .tree{width:max-content;margin:0 auto}
                     .tree ul{display:flex;flex-direction:row;justify-content:center;padding-top:30px;position:relative}
                     .tree li{position:relative;padding:30px 14px 0 14px;display:flex;flex-direction:column;align-items:center}
                     .tree li::before, .tree li::after{content:'';position:absolute;top:0;right:50%;width:50%;height:30px;border-top:2px solid #C9B8E6}

@@ -84,6 +84,10 @@
                     /* ===== Top-down org chart (classic CSS connector pattern) ===== */
                     .tree-scroll{overflow-x:auto;padding:20px 10px 40px 10px}
                     .tree, .tree ul{list-style:none;margin:0;padding:0}
+                    /* The whole tree is sized to its content and centred with auto margins; when it is
+                       wider than the viewport the scroll container can reach all of it (no unreachable
+                       left overflow, which happens with justify-content:center on the scroller). */
+                    .tree{width:max-content;margin:0 auto}
                     /* children laid out in a horizontal row below their parent */
                     .tree ul{display:flex;flex-direction:row;justify-content:center;padding-top:30px;position:relative}
                     .tree li{position:relative;padding:30px 14px 0 14px;display:flex;flex-direction:column;align-items:center}
