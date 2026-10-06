@@ -60,7 +60,19 @@
                     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&amp;display=swap');
                     .view-wrapper{padding:20px;max-width:1800px;margin:80px auto 0 auto;font-family:'DM Sans',sans-serif;color:#111827;font-size:1.05rem}
                     .view-wrapper h1{color:#361A54;margin-bottom:4px}
-                    .subtitle{color:#6B7280;margin-bottom:20px;font-size:1.05rem}
+                    .subtitle{color:#6B7280;margin-bottom:16px;font-size:1.05rem}
+                    /* Guidance panel */
+                    .guidance{background:#FBF9FF;border:1px solid #DDBDFF;border-radius:10px;padding:4px 20px;margin-bottom:22px}
+                    .guidance > summary{cursor:pointer;font-weight:700;color:#361A54;font-size:1.15rem;padding:10px 0;list-style:none}
+                    .guidance > summary::-webkit-details-marker{display:none}
+                    .guidance > summary::before{content:'\25B8';display:inline-block;margin-right:10px;color:#993AFF;transition:transform 0.15s}
+                    .guidance[open] > summary::before{transform:rotate(90deg)}
+                    .guidance-body{padding:4px 0 14px 0;color:#374151;line-height:1.5}
+                    .guidance-body h3{color:#361A54;font-size:1.05rem;margin:16px 0 4px 0}
+                    .guidance-body h3:first-child{margin-top:6px}
+                    .guidance-body p{margin:0 0 6px 0;font-size:0.98rem}
+                    .guidance-body a{color:#7d1fe0;font-weight:600}
+                    .guidance-body a:hover{text-decoration:underline}
                     /* Summary header */
                     .summary{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:24px;align-items:stretch}
                     .summary-count{flex:0 0 auto;background:linear-gradient(135deg,#361A54,#5B2A87);color:#fff;border-radius:12px;padding:20px 28px;display:flex;flex-direction:column;justify-content:center;min-width:180px}
@@ -271,6 +283,24 @@
                 <div class="view-wrapper">
                     <h1>Composite Application Provider &#8212; Data Completeness</h1>
                     <p class="subtitle">Completeness check of key properties for every Composite Application Provider. The portfolio is taken from the owner-organisation stakeholder (a Group Actor named "... (Portfolio)").</p>
+                    <details class="guidance" open="open">
+                        <summary>Updating the Application Catalogue &#8212; guidance</summary>
+                        <div class="guidance-body">
+                            <h3>Application Family</h3>
+                            <p>Fairly ad-hoc grouping of applications, can be multiple entry. E.g. MS 365</p>
+                            <h3>Supplier</h3>
+                            <p>Use the existing supplier list wherever possible as this includes entries from contract database and will link to contracts via supplier, supplier should be who we buy from not manufacturer. Add new if needed.</p>
+                            <h3>al managed by services</h3>
+                            <p>Select the service or services (from Xurrent) that manage this application</p>
+                            <h3>Modules</h3>
+                            <p>Composite application provider from the database. These are discrete modules within the application that could be replaced and the function done elsewhere. E.g. Departmental Transactions within Oracle EBS</p>
+                            <h3>Application Functionality (Services)</h3>
+                            <p>The thing that the application primarily delivers. These are high level and taken from the HERM application capability model. Find the most relevant from the existing <a href="https://ucl.essentialintelligence.com/viewer/8b3b72ca41670a212b09_1/report?XML=reportXML.xml&amp;XSL=application/core_al_app_service_list_by_name.xsl" target="_blank" rel="noopener">Application Services</a></p>
+                            <h3>Stakeholders</h3>
+                            <p>One or more user organisation. Wherever possible use the <a href="https://ucl.essentialintelligence.com/viewer/8b3b72ca41670a212b09_1/report?XML=reportXML.xml&amp;XSL=user/ucl_hierarchy_explorer.xsl&amp;cl=en-gb" target="_blank" rel="noopener">organisational hierarchy</a>. <strong>This is important for linking apps to processes and capabilities so give it some thought</strong>.</p>
+                            <p><strong>Minimum one product team for owner organisation</strong></p>
+                        </div>
+                    </details>
                     <div class="summary">
                         <div class="summary-count">
                             <span class="big" id="capTotal">0</span>
