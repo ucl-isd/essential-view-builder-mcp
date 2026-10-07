@@ -106,6 +106,9 @@
                     table.completeness tr:hover td.name-col{background:#FBF9FF}
                     table.completeness td{padding:9px 8px;border-bottom:1px solid #EEE;text-align:center;vertical-align:middle}
                     table.completeness td.name-col{text-align:left;font-weight:600;color:#361A54;white-space:nowrap}
+                    table.completeness td.name-col .app-name{margin-bottom:4px}
+                    .edit-btn{display:inline-block;font-size:0.78rem;font-weight:600;color:#7d1fe0;text-decoration:none;background:#F5F0FF;border:1px solid #DDBDFF;border-radius:12px;padding:2px 10px}
+                    .edit-btn:hover{background:#DDBDFF;color:#361A54}
                     table.completeness td.pf-col{text-align:left;white-space:nowrap;color:#374151}
                     table.completeness tr:hover td{background:#FBF9FF}
                     .cell{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-weight:700;font-size:0.95rem}
@@ -257,7 +260,8 @@
                         rows.forEach(function(c){
                             var comp = completeness(c);
                             html += '&lt;tr&gt;';
-                            html += '&lt;td class="name-col"&gt;' + esc(c.name) + '&lt;/td&gt;';
+                            var editUrl = 'report?XML=reportXML.xml&amp;PMA=' + encodeURIComponent(c.id) + '&amp;cl=en-gb&amp;XSL=ess_editor.xsl&amp;LABEL=' + encodeURIComponent('Application Editor for EAs') + '&amp;EDITOR=store_992_Class314';
+                            html += '&lt;td class="name-col"&gt;&lt;div class="app-name"&gt;' + esc(c.name) + '&lt;/div&gt;&lt;a class="edit-btn" href="' + editUrl + '" target="_blank"&gt;&#9998; Edit&lt;/a&gt;&lt;/td&gt;';
                             html += '&lt;td class="pf-col"&gt;' + (c.hasPortfolioOwner ? '&lt;span class="pf-pill"&gt;' + esc(c.portfolio) + '&lt;/span&gt;' : '&lt;span class="pf-none"&gt;None&lt;/span&gt;') + '&lt;/td&gt;';
                             PROPS.forEach(function(p){ html += '&lt;td&gt;' + cell(c[p.key]) + '&lt;/td&gt;'; });
                             html += '&lt;td&gt;&lt;span class="score ' + scoreClass(comp.pct) + '"&gt;' + comp.ok + '/' + comp.total + '&lt;/span&gt;&lt;/td&gt;';
