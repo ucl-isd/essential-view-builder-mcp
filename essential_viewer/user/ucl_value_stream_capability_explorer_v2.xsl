@@ -199,7 +199,8 @@
                     .diag-row-nodes{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
                     .row-cap .diag-row-nodes{justify-content:center}
                     .node{border-radius:8px;padding:9px 12px;font-weight:600;font-size:0.9rem;border:1px solid;position:relative;line-height:1.3;max-width:240px}
-                    .node.n-cap{background:#EDE4FF;color:#361A54;border-color:#DDBDFF;font-size:1rem;padding:12px 18px}
+                    .node.n-cap{background:#EDE4FF;color:#361A54;border-color:#DDBDFF;font-size:1rem;padding:12px 18px;cursor:pointer}
+                    .node.n-cap:hover{box-shadow:0 2px 8px rgba(0,0,0,0.15)}
                     .node.n-pp{background:#FFF4E5;color:#8A5200;border-color:#F3D6A6;text-align:left}
                     .node.n-pp .pp-line{display:block}
                     .node.n-pp .pp-lbl{font-weight:700;text-transform:uppercase;font-size:0.72rem;letter-spacing:0.03em;color:#B26A00}
@@ -207,10 +208,10 @@
                     .node.n-pp{cursor:pointer}
                     /* click-to-focus highlighting */
                     .node.faded{opacity:0.25}
-                    .node.focused{box-shadow:0 0 0 2px #7d1fe0;border-color:#7d1fe0}
+                    .node.focused{box-shadow:0 0 0 2px #7d1fe0;border-color:#7d1fe0;opacity:1}
                     svg.links path.link-path{transition:opacity 0.15s}
                     svg.links path.link-path.faded{opacity:0.12}
-                    svg.links path.link-path.focused{stroke:#7d1fe0;stroke-width:2.4}
+                    svg.links path.link-path.focused{stroke:#7d1fe0;stroke-width:2.4;opacity:1}
                     .node.n-app{background:#E7F8EF;color:#0B7A47;border-color:#B7E9CD;cursor:pointer}
                     .node.n-app:hover{box-shadow:0 2px 8px rgba(0,0,0,0.15)}
                     .node.dim{opacity:0.25}
@@ -343,37 +344,45 @@
                     var _nodeSeq = 0;
                     function nid(){ return 'nd' + (_nodeSeq++); }
 
-                    // Build the connected node diagram for one capability.
+                    // Build ONE combined diagram for a whole stage.
                     // 3 vertical tiers, top -&gt; bottom: Capability | Physical Process | Application
-                    // The business process layer is used only to gather physical processes, not shown.
-                    // Only physical processes that link to an application are included.
-                    // Links drawn: cap-&gt;pp, pp-&gt;app (all real).
-                    function renderCapDiagram(c){
-                        var capNode = {domId: nid(), name: c.name};
-                        var ppNodes = [], appNodes = [];
+                    // All the stage's capabilities appear as top-tier nodes. Physical processes and apps
+                    // are de-duplicated across the capabilities. Links drawn: cap-&gt;pp and pp-&gt;app.
+                    function renderStageDiagram(stage){
+                        var capNodes = [], ppNodes = [], appNodes = [];
                         var ppById = {}, appById = {};
                         var links = []; // {from, to}
-                        c.processes.forEach(function(bp){
-                            (bp.physProcs||[]).forEach(function(pp){
-                                if (!(pp.appIds &amp;&amp; pp.appIds.length)) return; // skip phys procs with no application
-                                var ppDom = ppById[pp.id];
-                                if (!ppDom){ ppDom = nid(); ppById[pp.id] = ppDom; ppNodes.push({domId: ppDom, node: pp}); }
-                                (pp.appIds||[]).forEach(function(aid){
-                                    if (!appById[aid]){ appById[aid] = nid(); var app = (bp.apps||[]).find(function(a){return a.id===aid;}) || APP_BY_ID[aid]; appNodes.push({domId: appById[aid], node: app || {id:aid, name:aid}}); }
-                                    links.push({from: ppDom, to: appById[aid]});
+                        (stage.caps||[]).forEach(function(c){
+                            var capDom = nid();
+                            var capHasLink = false;
+                            c.processes.forEach(function(bp){
+                                (bp.physProcs||[]).forEach(function(pp){
+                                    if (!(pp.appIds &amp;&amp; pp.appIds.length)) return; // skip phys procs with no application
+                                    var ppDom = ppById[pp.id];
+                                    if (!ppDom){ ppDom = nid(); ppById[pp.id] = ppDom; ppNodes.push({domId: ppDom, node: pp}); }
+                                    // capability -&gt; physical process link (avoid duplicates)
+                                    links.push({from: capDom, to: ppDom});
+                                    capHasLink = true;
+                                    (pp.appIds||[]).forEach(function(aid){
+                                        if (!appById[aid]){ appById[aid] = nid(); var app = (bp.apps||[]).find(function(a){return a.id===aid;}) || APP_BY_ID[aid]; appNodes.push({domId: appById[aid], node: app || {id:aid, name:aid}}); }
+                                        links.push({from: ppDom, to: appById[aid]});
+                                    });
                                 });
                             });
+                            // show the capability node even if it has no app-linked processes (as a leaf)
+                            capNodes.push({domId: capDom, node: c, hasLink: capHasLink});
                         });
 
-                        if (!ppNodes.length) return {html: '', links: [], empty: true};
+                        if (!capNodes.length) return {html: '&lt;div class="diag-empty"&gt;No linked capabilities&lt;/div&gt;', links: [], empty: true};
 
                         function rowHtml(cls, title, nodesHtml){
                             return '&lt;div class="diag-row ' + cls + '"&gt;&lt;div class="diag-row-title"&gt;' + title + '&lt;/div&gt;&lt;div class="diag-row-nodes"&gt;' + (nodesHtml || '&lt;div class="diag-empty"&gt;None&lt;/div&gt;') + '&lt;/div&gt;&lt;/div&gt;';
                         }
-                        var capRow = '&lt;div class="node n-cap" id="' + capNode.domId + '"&gt;' + esc(capNode.name) + '&lt;/div&gt;';
+                        var capRow = capNodes.map(function(c){
+                            return '&lt;div class="node n-cap" id="' + c.domId + '" onclick="focusCap(\'' + c.domId + '\')" title="' + esc(c.node.description || '') + '"&gt;' + esc(c.node.name) + '&lt;/div&gt;';
+                        }).join('');
                         var ppRow = ppNodes.map(function(p){
                             var actor = p.node.actor ? esc(p.node.actor) : '&lt;span class="pp-empty"&gt;Not set&lt;/span&gt;';
-                            // process name without the leading "&lt;actor&gt; performing " prefix
                             var procName = p.node.name || '';
                             var idx = procName.indexOf(' performing ');
                             if (idx !== -1) procName = procName.substring(idx + ' performing '.length);
@@ -381,7 +390,6 @@
                         }).join('');
                         var appRow = appNodes.map(function(a){ return '&lt;div class="node n-app" id="' + a.domId + '" onclick="event.stopPropagation(); focusApp(\'' + a.domId + '\'); openApp(\'' + a.node.id + '\')"&gt;' + esc(a.node.name) + '&lt;/div&gt;'; }).join('');
 
-                        // Top -&gt; bottom: Capability, Physical Process, Application
                         var html = '&lt;div class="diagram-scroll"&gt;&lt;div class="diagram"&gt;&lt;svg class="links"&gt;&lt;/svg&gt;&lt;div class="diag-rows"&gt;';
                         html += rowHtml('row-cap', 'Capability', capRow);
                         html += rowHtml('row-pp', 'Physical Process', ppRow);
@@ -446,7 +454,18 @@
                                 p.classList.add('faded');
                             }
                         });
-                        // mark pp and app nodes
+                        // also light the cap -&gt; this pp links and their capabilities
+                        var connectedCaps = {};
+                        paths.forEach(function(p){
+                            if (p.getAttribute('data-to') === ppDomId){
+                                p.classList.remove('faded'); p.classList.add('focused');
+                                connectedCaps[p.getAttribute('data-from')] = true;
+                            }
+                        });
+                        // mark cap, pp and app nodes
+                        diagram.querySelectorAll('.node.n-cap').forEach(function(n){
+                            n.classList.add(connectedCaps[n.id] ? 'focused' : 'faded');
+                        });
                         diagram.querySelectorAll('.node.n-pp').forEach(function(n){
                             n.classList.add(n.id === ppDomId ? 'focused' : 'faded');
                         });
@@ -467,21 +486,77 @@
                         if (alreadyFocused) return; // toggle off
 
                         diagram.classList.add('has-focus');
-                        var connectedPhys = {};
                         var paths = diagram.querySelectorAll('svg.links path.link-path');
+                        // 1) pp -&gt; this app links
+                        var connectedPhys = {};
                         paths.forEach(function(p){
                             if (p.getAttribute('data-to') === appDomId){
                                 p.classList.add('focused');
                                 connectedPhys[p.getAttribute('data-from')] = true;
-                            } else {
-                                p.classList.add('faded');
                             }
                         });
+                        // 2) cap -&gt; those physical processes links (so the whole chain is lit)
+                        var connectedCaps = {};
+                        paths.forEach(function(p){
+                            if (connectedPhys[p.getAttribute('data-to')]){
+                                p.classList.add('focused');
+                                connectedCaps[p.getAttribute('data-from')] = true;
+                            }
+                        });
+                        // fade any path not focused
+                        paths.forEach(function(p){ if (!p.classList.contains('focused')) p.classList.add('faded'); });
+                        // mark nodes across all three tiers
                         diagram.querySelectorAll('.node.n-app').forEach(function(n){
                             n.classList.add(n.id === appDomId ? 'focused' : 'faded');
                         });
                         diagram.querySelectorAll('.node.n-pp').forEach(function(n){
                             n.classList.add(connectedPhys[n.id] ? 'focused' : 'faded');
+                        });
+                        diagram.querySelectorAll('.node.n-cap').forEach(function(n){
+                            n.classList.add(connectedCaps[n.id] ? 'focused' : 'faded');
+                        });
+                    }
+
+                    // Click a capability to focus it: highlight it, its physical processes, their apps,
+                    // and all connecting lines; grey out everything else. Click again to clear.
+                    function focusCap(capDomId){
+                        var capEl = document.getElementById(capDomId);
+                        if (!capEl) return;
+                        var diagram = capEl.closest('.diagram');
+                        if (!diagram) return;
+                        var alreadyFocused = capEl.classList.contains('focused');
+                        clearFocus(diagram);
+                        if (alreadyFocused) return; // toggle off
+
+                        diagram.classList.add('has-focus');
+                        var paths = diagram.querySelectorAll('svg.links path.link-path');
+                        // 1) cap -&gt; pp links from this capability
+                        var connectedPhys = {};
+                        paths.forEach(function(p){
+                            if (p.getAttribute('data-from') === capDomId){
+                                p.classList.add('focused');
+                                connectedPhys[p.getAttribute('data-to')] = true;
+                            }
+                        });
+                        // 2) pp -&gt; app links from those physical processes
+                        var connectedApps = {};
+                        paths.forEach(function(p){
+                            if (connectedPhys[p.getAttribute('data-from')]){
+                                p.classList.add('focused');
+                                connectedApps[p.getAttribute('data-to')] = true;
+                            }
+                        });
+                        // fade any path not already focused
+                        paths.forEach(function(p){ if (!p.classList.contains('focused')) p.classList.add('faded'); });
+                        // mark nodes
+                        diagram.querySelectorAll('.node.n-cap').forEach(function(n){
+                            n.classList.add(n.id === capDomId ? 'focused' : 'faded');
+                        });
+                        diagram.querySelectorAll('.node.n-pp').forEach(function(n){
+                            n.classList.add(connectedPhys[n.id] ? 'focused' : 'faded');
+                        });
+                        diagram.querySelectorAll('.node.n-app').forEach(function(n){
+                            n.classList.add(connectedApps[n.id] ? 'focused' : 'faded');
                         });
                     }
 
@@ -492,58 +567,35 @@
                         });
                     }
 
-                    var PENDING = []; // diagrams awaiting draw when their card opens
-
-                    function renderCapCard(c){
-                        var diag = renderCapDiagram(c);
-                        var bodyId = 'vbody-' + c.uid;
-                        var html = '&lt;div class="vcap"&gt;';
-                        html += '&lt;div class="vcap-head" onclick="toggleCap(this, \'' + bodyId + '\')"&gt;&lt;span class="caret"&gt;&#9656;&lt;/span&gt;&lt;span class="vcap-name"&gt;' + esc(c.name) + '&lt;/span&gt;&lt;/div&gt;';
-                        html += '&lt;div class="vcap-body" id="' + bodyId + '"&gt;';
-                        if (c.description) html += '&lt;div class="vcap-desc"&gt;' + esc(c.description) + '&lt;/div&gt;';
-                        if (!diag.empty){
-                            html += '&lt;div class="legend"&gt;&lt;span&gt;&lt;i style="background:#EDE4FF"&gt;&lt;/i&gt;Capability&lt;/span&gt;&lt;span&gt;&lt;i style="background:#FFF4E5"&gt;&lt;/i&gt;Physical Process&lt;/span&gt;&lt;span&gt;&lt;i style="background:#E7F8EF"&gt;&lt;/i&gt;Application&lt;/span&gt;&lt;/div&gt;';
-                            html += diag.html;
-                        } else {
-                            html += '&lt;div class="diag-empty"&gt;No business processes for this capability link through to an application.&lt;/div&gt;';
-                        }
-                        html += '&lt;/div&gt;&lt;/div&gt;';
-                        PENDING.push({bodyId: bodyId, links: diag.links});
-                        return html;
-                    }
+                    var PENDING = []; // stage diagrams awaiting line-draw after layout
 
                     function renderStream(vs){
                         var container = document.getElementById('stageTrack');
                         PENDING = [];
                         var stages = vs.stages.filter(function(st){ return ACTIVE_STAGES[st.id] !== false; });
                         if (!stages.length){ container.innerHTML = '&lt;div class="no-data"&gt;No stages selected. Tick one or more stages above.&lt;/div&gt;'; return; }
-                        var uid = 0;
                         var html = '';
-                        stages.forEach(function(st){
+                        stages.forEach(function(st, i){
+                            var diag = renderStageDiagram(st);
+                            var diagId = 'stagediag-' + i;
                             html += '&lt;div class="stage-col"&gt;';
                             html += '&lt;div class="stage-head"&gt;&lt;span class="stage-index"&gt;' + esc(st.index || '') + '&lt;/span&gt;&lt;span&gt;' + esc(st.name) + '&lt;/span&gt;&lt;/div&gt;';
-                            html += '&lt;div class="stage-body"&gt;';
-                            if (st.caps.length){
-                                html += '&lt;div class="stage-cap-count"&gt;' + st.caps.length + ' capability' + (st.caps.length===1?'':'ies') + '&lt;/div&gt;';
-                                st.caps.forEach(function(c){ c.uid = 'u' + (uid++); html += renderCapCard(c); });
-                            } else {
-                                html += '&lt;div class="diag-empty"&gt;No linked capabilities&lt;/div&gt;';
-                            }
+                            html += '&lt;div class="stage-body" id="' + diagId + '"&gt;';
+                            html += '&lt;div class="stage-cap-count"&gt;' + st.caps.length + ' capability' + (st.caps.length===1?'':'ies') + '&lt;/div&gt;';
+                            html += diag.html;
                             html += '&lt;/div&gt;&lt;/div&gt;';
+                            PENDING.push({diagId: diagId, links: diag.links});
                         });
                         container.innerHTML = html;
-                    }
-
-                    function toggleCap(headEl, bodyId) {
-                        var body = document.getElementById(bodyId);
-                        if (!body) return;
-                        var isOpen = body.classList.contains('open');
-                        body.classList.toggle('open', !isOpen);
-                        headEl.classList.toggle('open', !isOpen);
-                        if (!isOpen){
-                            var pend = PENDING.find(function(p){ return p.bodyId === bodyId; });
-                            if (pend){ var dg = body.querySelector('.diagram'); if (dg) setTimeout(function(){ drawLinks(dg, pend.links); }, 30); }
-                        }
+                        // draw all stage diagram lines once laid out
+                        setTimeout(function(){
+                            PENDING.forEach(function(p){
+                                var body = document.getElementById(p.diagId);
+                                if (!body) return;
+                                var dg = body.querySelector('.diagram');
+                                if (dg) drawLinks(dg, p.links);
+                            });
+                        }, 30);
                     }
 
                     var ACTIVE_STAGES = {}; // stageId -> bool
