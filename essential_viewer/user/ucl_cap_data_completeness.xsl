@@ -127,17 +127,21 @@
                     var CAPS = [<xsl:for-each select="$allCaps">
                         <xsl:sort select="own_slot_value[slot_reference='name']/value"/>
                         <xsl:variable name="cap" select="current()"/>
-                        <!-- Stakeholder relations for this app: ACTOR_TO_ROLE_RELATION whose
-                             stakeholder_of_elements includes this app. Classify by the linked business role
-                             (act_to_role_to_role -> 'Application Organisation Owner' / 'Application Organisation User'). -->
-                        <xsl:variable name="rels" select="key('stakeRelByElement', $cap/name)"/>
+                        <!-- Stakeholder relations for this app, from BOTH link directions:
+                             (a) relation-side: ACTOR_TO_ROLE_RELATION whose stakeholder_of_elements includes this app;
+                             (b) app-side: the app's own 'stakeholders' slot referencing relations.
+                             Classify by the linked business role (act_to_role_to_role ->
+                             'Application Organisation Owner' / 'Application Organisation User'). -->
+                        <xsl:variable name="relsViaElement" select="key('stakeRelByElement', $cap/name)"/>
+                        <xsl:variable name="relsViaSlot" select="$allA2R[name = $cap/own_slot_value[slot_reference='stakeholders']/value]"/>
+                        <xsl:variable name="rels" select="$relsViaElement | $relsViaSlot"/>
                         <xsl:variable name="ownerRels" select="$rels[own_slot_value[slot_reference='act_to_role_to_role']/value = $ownerRole/name]"/>
                         <xsl:variable name="userRels" select="$rels[own_slot_value[slot_reference='act_to_role_to_role']/value = $userRole/name]"/>
                         <!-- Actors (owner / user) referenced by those relations -->
                         <xsl:variable name="ownerActors" select="$allActors[name = $ownerRels/own_slot_value[slot_reference='act_to_role_from_actor']/value]"/>
                         <xsl:variable name="userActors" select="$allActors[name = $userRels/own_slot_value[slot_reference='act_to_role_from_actor']/value]"/>
-                        <!-- Portfolio owner: an owner actor that is a Group_Actor whose name contains 'Portfolio' -->
-                        <xsl:variable name="portfolioOwners" select="$ownerActors[type='Group_Actor'][contains(own_slot_value[slot_reference='name']/value,'Portfolio')]"/>
+                        <!-- Portfolio owner: an owner Group_Actor whose name contains 'Portfolio' or 'Product' -->
+                        <xsl:variable name="portfolioOwners" select="$ownerActors[type='Group_Actor'][contains(own_slot_value[slot_reference='name']/value,'Portfolio') or contains(own_slot_value[slot_reference='name']/value,'Product')]"/>
                         {
                         "id":"<xsl:value-of select="eas:jsonText(string($cap/name))"/>",
                         "name":"<xsl:value-of select="eas:jsonText(string($cap/own_slot_value[slot_reference='name']/value))"/>",
@@ -176,7 +180,7 @@
                         {key:'hasManagedServices', label:'Managed By Services'},
                         {key:'hasOwner', label:'Owner Org'},
                         {key:'hasUser', label:'Org User'},
-                        {key:'hasPortfolioOwner', label:'Portfolio Owner'}
+                        {key:'hasPortfolioOwner', label:'Portfolio/Product Owner'}
                     ];
 
                     function completeness(c){
@@ -286,7 +290,7 @@
                 <xsl:call-template name="Heading"/>
                 <div class="view-wrapper">
                     <h1>Composite Application Provider &#8212; Data Completeness</h1>
-                    <p class="subtitle">Completeness check of key properties for every Composite Application Provider. The portfolio is taken from the owner-organisation stakeholder (a Group Actor named "... (Portfolio)").</p>
+                    <p class="subtitle">Completeness check of key properties for every Composite Application Provider. The portfolio is taken from the owner-organisation stakeholder (a Group Actor named "... (Portfolio)" or "... (Product)").</p>
                     <details class="guidance" open="open">
                         <summary>Updating the Application Catalogue &#8212; guidance</summary>
                         <div class="guidance-body">
@@ -324,7 +328,7 @@
                         <span style="color:#6B7280;">Showing <strong id="shownCount">0</strong></span>
                     </div>
                     <div class="tbl-wrap" id="tableWrap"><p>Loading...</p></div>
-                    <p class="legend">&#10003; = property present &#160;&#160; &#10007; = missing. "Owner Org" / "Org User" check for stakeholder relations ending in "Application Organisation Owner" / "Application Organisation User". "Portfolio Owner" requires the owner to be a Group Actor named "... (Portfolio)".</p>
+                    <p class="legend">&#10003; = property present &#160;&#160; &#10007; = missing. "Owner Org" / "Org User" check for stakeholder relations ending in "Application Organisation Owner" / "Application Organisation User". "Portfolio/Product Owner" requires the owner to be a Group Actor named "... (Portfolio)" or "... (Product)".</p>
                 </div>
                 <xsl:call-template name="Footer"/>
             </body>
