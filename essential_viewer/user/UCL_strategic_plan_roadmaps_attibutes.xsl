@@ -138,7 +138,7 @@
 				]};
 
 				/* All SR risks for coverage indicator */
-				<xsl:variable name="srRisks" select="$allRisks[starts-with(own_slot_value[slot_reference = 'name']/value, 'SR')]"></xsl:variable>
+				<xsl:variable name="srRisks" select="$allRisks[starts-with(own_slot_value[slot_reference = 'name']/value, 'SR')][not(own_slot_value[slot_reference = 'risk_leads_to']/value != '')]"></xsl:variable>
 				viewData.allSRRisks = [<xsl:for-each select="$srRisks"><xsl:sort select="own_slot_value[slot_reference = 'name']/value" order="ascending"></xsl:sort>"<xsl:value-of select="replace(translate(own_slot_value[slot_reference = 'name']/value, '&quot;', &quot;&apos;&quot;), '&amp;', 'and')"/>"<xsl:if test="position() != last()">,</xsl:if></xsl:for-each>];
 
 				/* Priority is extracted from performanceMeasures starting with 'Priority' same as Benefits/DSP */
