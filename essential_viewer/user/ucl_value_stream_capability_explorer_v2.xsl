@@ -40,6 +40,12 @@
     <xsl:variable name="allContracts" select="/node()/simple_instance[type='Contract']"/>
     <xsl:key name="ccrByElement" match="/node()/simple_instance[type='CONTRACT_COMPONENT_RELATION']" use="own_slot_value[slot_reference='contract_component_to_element']/value"/>
 
+    <!-- External reference links (documents). Resolve either via the element's
+         external_reference_links slot, or via links that point back at the element
+         through referenced_ea_instance. -->
+    <xsl:variable name="allExtLinks" select="/node()/simple_instance[type='External_Reference_Link']"/>
+    <xsl:key name="extLinkByRefElement" match="/node()/simple_instance[type='External_Reference_Link']" use="own_slot_value[slot_reference='referenced_ea_instance']/value"/>
+
     <!-- L1 = children of L0; L0 = children of the Root Business Capability -->
     <xsl:variable name="rootConstant" select="/node()/simple_instance[type='Report_Constant'][own_slot_value[slot_reference='name']/value='Root Business Capability']"/>
     <xsl:variable name="rootCap" select="$allBusCaps[name=$rootConstant/own_slot_value[slot_reference='report_constant_ea_elements']/value]"/>
@@ -66,6 +72,22 @@
         <xsl:value-of select="$s5"/>
     </xsl:function>
 
+    <!-- Emit a JSON array of {name,url,date} for the external reference links (documents)
+         attached to an element, resolved via both the element's external_reference_links
+         slot and any links pointing at it via referenced_ea_instance. -->
+    <xsl:template name="renderDocLinks">
+        <xsl:param name="element"/>
+        <xsl:variable name="viaSlot" select="$allExtLinks[name = $element/own_slot_value[slot_reference='external_reference_links']/value]"/>
+        <xsl:variable name="viaRef" select="key('extLinkByRefElement', $element/name)"/>
+        <xsl:variable name="docs" select="$viaSlot | $viaRef"/>
+        <xsl:for-each select="$docs">
+            <xsl:variable name="doc" select="current()"/>
+            <xsl:variable name="docName" select="($doc/own_slot_value[slot_reference='name']/value)[1]"/>
+            <xsl:variable name="docUrl" select="($doc/own_slot_value[slot_reference='external_reference_url']/value)[1]"/>
+            {"name":"<xsl:value-of select="eas:jsonText(string($docName))"/>","url":"<xsl:value-of select="eas:jsonText(string($docUrl))"/>","date":"<xsl:value-of select="eas:jsonText(string($doc/own_slot_value[slot_reference='erl_date_iso_8601']/value))"/>"}<xsl:if test="not(position()=last())">,</xsl:if>
+        </xsl:for-each>
+    </xsl:template>
+
     <!-- Render a business process as a JSON node with its physical processes, services and apps.
          Chain: BusProc -> Physical_Process (implements_business_process)
                 Physical_Process <- APP_PRO_TO_PHYS_BUS_RELATION (apppro_to_physbus_to_busproc)
@@ -82,6 +104,7 @@
         "name":"<xsl:value-of select="eas:jsonText(string($proc/own_slot_value[slot_reference='name']/value))"/>",
         "type":"<xsl:value-of select="eas:jsonText(string($proc/type))"/>",
         "description":"<xsl:value-of select="eas:jsonText(string($proc/own_slot_value[slot_reference='description']/value))"/>",
+        "docLinks":[<xsl:call-template name="renderDocLinks"><xsl:with-param name="element" select="$proc"/></xsl:call-template>],
         "physProcs":[<xsl:for-each select="$physProcs">
             <xsl:variable name="pp" select="current()"/>
             <!-- relations supporting this physical process -->
@@ -101,6 +124,8 @@
             <xsl:variable name="ppActors" select="$directActors | $indirectActors"/>
             {"id":"<xsl:value-of select="eas:jsonText(string($pp/name))"/>","name":"<xsl:value-of select="eas:jsonText(string($pp/own_slot_value[slot_reference='name']/value))"/>","description":"<xsl:value-of select="eas:jsonText(string($pp/own_slot_value[slot_reference='description']/value))"/>",
             "actor":"<xsl:for-each select="$ppActors"><xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/><xsl:if test="not(position()=last())">, </xsl:if></xsl:for-each>",
+            <!-- Documents hang off the parent business process ($proc), surfaced here on the physical process -->
+            "docLinks":[<xsl:call-template name="renderDocLinks"><xsl:with-param name="element" select="$proc"/></xsl:call-template>],
             "appIds":[<xsl:for-each select="$ppApps">"<xsl:value-of select="eas:jsonText(string(current()/name))"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]
             }<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
         "apps":[<xsl:variable name="allRels2" select="key('apPhysRelByPhys', $physProcs/name)"/>
@@ -243,6 +268,12 @@
                     .sb-contract{background:#F5F0FF;border:1px solid #DDBDFF;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
                     .sb-contract .ct-name{font-weight:600;color:#361A54}
                     .sb-contract .ct-end{font-size:0.9rem;color:#6B7280;white-space:nowrap;flex-shrink:0}
+                    .sb-doc{display:flex;align-items:center;gap:10px;background:#F5F0FF;border:1px solid #DDBDFF;border-radius:8px;padding:10px 14px;text-decoration:none;color:#361A54;font-weight:600;transition:background 0.15s}
+                    a.sb-doc:hover{background:#EDE4FF}
+                    .sb-doc.nolink{color:#6B7280;font-weight:500}
+                    .sb-doc .doc-icon{font-size:1.1rem;flex-shrink:0}
+                    .sb-doc .doc-name{flex:1;word-break:break-word}
+                    .sb-doc .doc-date{font-size:0.85rem;color:#6B7280;white-space:nowrap;flex-shrink:0}
                 </style>
                 <script type="text/javascript">
                     var STREAMS = [<xsl:for-each select="$allValueStreams">
@@ -272,9 +303,11 @@
 
                     var APP_BY_ID = {};
                     var PROC_BY_ID = {};
+                    var PP_BY_ID = {};
                     function indexProcs(procs){
                         procs.forEach(function(p){
                             PROC_BY_ID[p.id] = p;
+                            (p.physProcs||[]).forEach(function(pp){ PP_BY_ID[pp.id] = pp; });
                             (p.apps||[]).forEach(function(a){ APP_BY_ID[a.id] = a; });
                         });
                     }
@@ -282,6 +315,25 @@
 
                     function detailRow(label, value){
                         return '&lt;div class="sb-row"&gt;&lt;div class="sb-label"&gt;' + esc(label) + '&lt;/div&gt;&lt;div class="sb-value"&gt;' + (value ? esc(value) : '&lt;span class="sb-empty"&gt;Not set&lt;/span&gt;') + '&lt;/div&gt;&lt;/div&gt;';
+                    }
+
+                    // Render a Documents / External Reference Links block for a sidebar
+                    function docLinksRow(docs){
+                        var html = '&lt;div class="sb-row"&gt;&lt;div class="sb-label"&gt;Documents &amp;amp; Links&lt;/div&gt;&lt;div class="sb-value"&gt;';
+                        if (docs &amp;&amp; docs.length){
+                            html += '&lt;div class="sb-child-list"&gt;';
+                            docs.forEach(function(d){
+                                var label = d.name || d.url;
+                                if (d.url){
+                                    html += '&lt;a class="sb-doc" href="' + esc(d.url) + '" target="_blank" rel="noopener"&gt;&lt;span class="doc-icon"&gt;&#128196;&lt;/span&gt;&lt;span class="doc-name"&gt;' + esc(label) + '&lt;/span&gt;' + (d.date ? '&lt;span class="doc-date"&gt;' + esc(d.date) + '&lt;/span&gt;' : '') + '&lt;/a&gt;';
+                                } else {
+                                    html += '&lt;div class="sb-doc nolink"&gt;&lt;span class="doc-icon"&gt;&#128196;&lt;/span&gt;&lt;span class="doc-name"&gt;' + esc(label) + '&lt;/span&gt;&lt;/div&gt;';
+                                }
+                            });
+                            html += '&lt;/div&gt;';
+                        } else { html += '&lt;span class="sb-empty"&gt;None&lt;/span&gt;'; }
+                        html += '&lt;/div&gt;&lt;/div&gt;';
+                        return html;
                     }
 
                     function openApp(id){
@@ -328,6 +380,20 @@
                             html += '&lt;/div&gt;';
                         } else { html += '&lt;span class="sb-empty"&gt;None linked&lt;/span&gt;'; }
                         html += '&lt;/div&gt;&lt;/div&gt;';
+                        html += docLinksRow(p.docLinks);
+                        openSidebar(html);
+                    }
+
+                    // Open the detail pop-out for a physical process (the Actor/Process node)
+                    function openPhys(id){
+                        var pp = PP_BY_ID[id];
+                        if (!pp) return;
+                        var html = '&lt;div class="sb-kicker proc"&gt;Process&lt;/div&gt;';
+                        html += '&lt;h2 class="sb-title"&gt;' + esc(pp.name) + '&lt;/h2&gt;';
+                        html += detailRow('Description', pp.description);
+                        html += detailRow('Performed by', pp.actor);
+                        html += '&lt;div class="sb-row"&gt;&lt;div class="sb-label"&gt;Supported by&lt;/div&gt;&lt;div class="sb-value"&gt;' + (pp.appIds ? pp.appIds.length : 0) + ' application' + ((pp.appIds &amp;&amp; pp.appIds.length===1)?'':'s') + '&lt;/div&gt;&lt;/div&gt;';
+                        html += docLinksRow(pp.docLinks);
                         openSidebar(html);
                     }
 
@@ -386,7 +452,7 @@
                             var procName = p.node.name || '';
                             var idx = procName.indexOf(' performing ');
                             if (idx !== -1) procName = procName.substring(idx + ' performing '.length);
-                            return '&lt;div class="node n-pp" id="' + p.domId + '" onclick="focusPhys(\'' + p.domId + '\')"&gt;&lt;span class="pp-line"&gt;&lt;span class="pp-lbl"&gt;Actor:&lt;/span&gt; ' + actor + '&lt;/span&gt;&lt;span class="pp-line"&gt;&lt;span class="pp-lbl"&gt;Process:&lt;/span&gt; ' + esc(procName) + '&lt;/span&gt;&lt;/div&gt;';
+                            return '&lt;div class="node n-pp" id="' + p.domId + '" onclick="focusPhys(\'' + p.domId + '\'); openPhys(\'' + p.node.id + '\')"&gt;&lt;span class="pp-line"&gt;&lt;span class="pp-lbl"&gt;Actor:&lt;/span&gt; ' + actor + '&lt;/span&gt;&lt;span class="pp-line"&gt;&lt;span class="pp-lbl"&gt;Process:&lt;/span&gt; ' + esc(procName) + '&lt;/span&gt;&lt;/div&gt;';
                         }).join('');
                         var appRow = appNodes.map(function(a){ return '&lt;div class="node n-app" id="' + a.domId + '" onclick="event.stopPropagation(); focusApp(\'' + a.domId + '\'); openApp(\'' + a.node.id + '\')"&gt;' + esc(a.node.name) + '&lt;/div&gt;'; }).join('');
 
@@ -418,9 +484,8 @@
                             // vertical flow: from bottom-centre of source node to top-centre of target node
                             var x1 = ra.left + ra.width/2 - base.left, y1 = ra.bottom - base.top;
                             var x2 = rb.left + rb.width/2 - base.left, y2 = rb.top - base.top;
-                            var my = (y1 + y2) / 2;
                             var path = document.createElementNS(ns, 'path');
-                            path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' C ' + x1 + ' ' + my + ', ' + x2 + ' ' + my + ', ' + x2 + ' ' + y2);
+                            path.setAttribute('d', 'M ' + x1 + ' ' + y1 + ' L ' + x2 + ' ' + y2);
                             path.setAttribute('fill', 'none');
                             path.setAttribute('stroke', '#B49AD1');
                             path.setAttribute('stroke-width', '1.6');
