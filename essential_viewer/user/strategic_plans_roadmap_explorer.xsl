@@ -30,49 +30,68 @@
                 </xsl:call-template>
                 <title>Explore UCL's Digital Strategic Plan</title>
                 <style>
-                    .view-wrapper{padding:20px;max-width:1600px;margin:80px auto 0 auto}
-                    .filters-bar{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
-                    .filters-bar select{padding:6px 12px;border-radius:4px;border:1px solid #ccc;min-width:180px}
-                    .filters-bar label{font-weight:600;margin-right:5px}
-                    .roadmap-container{position:relative;overflow-x:auto;margin-bottom:30px;border:1px solid #e0e0e0;border-radius:8px;padding:20px;background:#fafafa}
-                    .timeline-header{display:flex;border-bottom:2px solid #ccc;padding-bottom:8px;margin-bottom:10px;position:sticky;top:0;background:#fafafa;z-index:2}
-                    .timeline-label{width:280px;font-weight:700;flex-shrink:0}
-                    .timeline-scale{flex:1;display:flex;justify-content:space-between;font-size:11px;color:#666}
-                    .plan-row{display:flex;align-items:center;margin-bottom:8px;min-height:44px}
-                    .plan-name{width:280px;font-size:12px;font-weight:500;flex-shrink:0;padding-right:10px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+                    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&amp;display=swap');
+                    /* ===== UCL brand palette ===== */
+                    /* Primary deep purple #361A54, accent #993AFF / #7d1fe0, light #F5F0FF / #EDE4FF / #DDBDFF */
+                    .view-wrapper{padding:20px;max-width:1600px;margin:80px auto 0 auto;font-family:'DM Sans',sans-serif;color:#111827}
+                    .view-wrapper h1{color:#361A54;margin-bottom:5px;font-weight:800}
+                    .view-wrapper .subtitle{color:#6B7280;margin-bottom:20px;font-size:0.9rem}
+                    .filters-bar{display:flex;gap:18px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-start}
+                    .filters-bar select{padding:10px 14px;border-radius:8px;border:1px solid #DDBDFF;min-width:200px;font-family:'DM Sans',sans-serif;font-size:1.1rem;background:#fff}
+                    .filters-bar label{font-weight:700;margin-right:6px;color:#361A54;font-size:1.1rem}
+                    .filter-group{display:flex;flex-direction:column;gap:6px}
+                    /* Priority multi-select checkboxes */
+                    .priority-checks{display:flex;flex-wrap:wrap;gap:8px;max-width:860px}
+                    .pr-chk{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #DDBDFF;border-radius:20px;padding:6px 15px;cursor:pointer;font-weight:600;color:#361A54;font-size:1rem;user-select:none}
+                    .pr-chk:hover{background:#F5F0FF}
+                    .pr-chk.checked{background:#EDE4FF;border-color:#993AFF}
+                    .pr-chk input{cursor:pointer;accent-color:#7d1fe0}
+                    .pr-actions{font-size:0.92rem;font-weight:600;margin-top:2px}
+                    .pr-actions a{color:#7d1fe0;cursor:pointer;text-decoration:underline;margin-right:12px}
+                    .roadmap-container{position:relative;overflow-x:auto;margin-bottom:30px;border:1px solid #DDBDFF;border-radius:10px;padding:20px;background:#FBF9FF}
+                    .timeline-header{display:flex;border-bottom:2px solid #DDBDFF;padding-bottom:8px;margin-bottom:10px;position:sticky;top:0;background:#FBF9FF;z-index:2}
+                    .timeline-label{width:280px;font-weight:700;flex-shrink:0;color:#361A54;font-size:1.1rem}
+                    .timeline-scale{flex:1;display:flex;justify-content:space-between;font-size:13px;color:#6B7280}
+                    .plan-row{display:flex;align-items:center;margin-bottom:8px;min-height:46px}
+                    .plan-name{width:280px;font-size:14px;font-weight:500;flex-shrink:0;padding-right:10px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
                     .plan-bar-container{flex:1;position:relative;height:28px}
-                    .plan-bar{position:absolute;height:24px;border-radius:4px;cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:11px;color:#fff;font-weight:500;transition:opacity 0.2s,transform 0.1s;top:2px}
+                    .plan-bar{position:absolute;height:24px;border-radius:5px;cursor:pointer;display:flex;align-items:center;padding:0 8px;font-size:13px;color:#fff;font-weight:500;transition:opacity 0.2s,transform 0.1s;top:2px}
                     .plan-bar:hover{opacity:0.85;transform:scaleY(1.1)}
-                    .plan-bar.status-idea{background:#5b9bd5}
+                    .plan-bar.status-idea{background:#993AFF}
                     .plan-bar.status-discovery{background:#ed7d31}
-                    .plan-bar.status-governance{background:#9b59b6}
-                    .plan-bar.status-delivery{background:#70ad47}
+                    .plan-bar.status-governance{background:#5B2A87}
+                    .plan-bar.status-delivery{background:#12B76A}
                     .plan-bar.status-default{background:#bdc3c7}
-                    .detail-panel{position:fixed;top:0;right:-500px;width:480px;height:100vh;background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,0.15);z-index:1000;transition:right 0.3s ease;overflow-y:auto;padding:30px}
+                    /* Greyed-out unplanned plan row */
+                    .plan-row.unplanned .plan-name{color:#9CA3AF !important;font-style:italic}
+                    .plan-row.unplanned{opacity:0.65}
+                    .detail-panel{position:fixed;top:0;right:-500px;width:480px;max-width:94vw;height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,0.18);z-index:1000;transition:right 0.3s ease;overflow-y:auto;padding:30px;font-family:'DM Sans',sans-serif}
                     .detail-panel.open{right:0}
-                    .detail-panel .close-btn{position:absolute;top:15px;right:15px;font-size:24px;cursor:pointer;color:#666;background:none;border:none}
-                    .detail-panel h3{margin-top:0;padding-right:40px;color:#333;border-bottom:2px solid #5b9bd5;padding-bottom:10px}
+                    .detail-panel .close-btn{position:absolute;top:15px;right:15px;font-size:24px;cursor:pointer;color:#6B7280;background:none;border:none}
+                    .detail-panel h3{margin-top:0;padding-right:40px;color:#361A54;border-bottom:2px solid #993AFF;padding-bottom:10px;font-weight:700}
+                    .update-plan-btn{display:inline-block;background:#993AFF;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;font-size:1rem;margin-bottom:18px}
+                    .update-plan-btn:hover{background:#7d1fe0;color:#fff}
                     .detail-section{margin-bottom:20px}
-                    .detail-section h4{color:#555;margin-bottom:8px;font-size:14px}
+                    .detail-section h4{color:#361A54;margin-bottom:8px;font-size:14px;font-weight:700}
                     .detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:15px}
-                    .detail-meta .meta-item{background:#f5f5f5;padding:8px 12px;border-radius:4px}
-                    .detail-meta .meta-label{font-size:11px;color:#888;text-transform:uppercase}
-                    .detail-meta .meta-value{font-size:14px;font-weight:600;color:#333}
+                    .detail-meta .meta-item{background:#F5F0FF;padding:8px 12px;border-radius:6px}
+                    .detail-meta .meta-label{font-size:11px;color:#7d1fe0;text-transform:uppercase;font-weight:700}
+                    .detail-meta .meta-value{font-size:14px;font-weight:600;color:#361A54}
                     .perf-table{width:100%;border-collapse:collapse;font-size:13px}
-                    .perf-table th{background:#f0f0f0;padding:8px;text-align:left;border-bottom:1px solid #ddd}
-                    .perf-table td{padding:8px;border-bottom:1px solid #eee}
+                    .perf-table th{background:#361A54;color:#fff;padding:8px;text-align:left;border-bottom:1px solid #ddd}
+                    .perf-table td{padding:8px;border-bottom:1px solid #EDE4FF}
                     .dep-list{list-style:none;padding:0}
-                    .dep-list li{padding:6px 10px;margin-bottom:4px;background:#fff3e0;border-left:3px solid #ff9800;border-radius:3px;font-size:13px}
+                    .dep-list li{padding:6px 10px;margin-bottom:4px;background:#F5F0FF;border-left:3px solid #993AFF;border-radius:3px;font-size:13px}
                     .legend{display:flex;gap:15px;margin-bottom:15px;flex-wrap:wrap}
-                    .legend-item{display:flex;align-items:center;gap:5px;font-size:12px}
-                    .legend-swatch{width:16px;height:16px;border-radius:3px}
+                    .legend-item{display:flex;align-items:center;gap:5px;font-size:14px;color:#374151}
+                    .legend-swatch{width:18px;height:18px;border-radius:3px}
                     .summary-cards{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap}
-                    .summary-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:15px 20px;min-width:140px;text-align:center}
-                    .summary-card .count{font-size:28px;font-weight:700;color:#5b9bd5}
-                    .summary-card .label{font-size:12px;color:#666;margin-top:4px}
-                    .overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);z-index:999;display:none}
+                    .summary-card{background:#fff;border:1px solid #DDBDFF;border-radius:10px;padding:16px 22px;min-width:150px;text-align:center}
+                    .summary-card .count{font-size:32px;font-weight:800;color:#361A54}
+                    .summary-card .label{font-size:14px;color:#6B7280;margin-top:4px}
+                    .overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(54,26,84,0.35);z-index:999;display:none}
                     .overlay.open{display:block}
-                    .no-data{text-align:center;padding:40px;color:#999;font-size:16px}
+                    .no-data{text-align:center;padding:40px;color:#6B7280;font-size:18px}
                 </style>
                 <script type="text/javascript">
                     <xsl:call-template name="RenderViewerAPIJSFunction"/>
@@ -83,7 +102,8 @@
                     var techCapabilities = [];
                     var planPerfMeasures = [<xsl:for-each select="$allStrategicPlans"><xsl:variable name="thisPlanPerfMeasures" select="$planPerfMeasureInstances[name=current()/own_slot_value[slot_reference='performance_measures']/value]"/><xsl:if test="$thisPlanPerfMeasures">{"id":"<xsl:value-of select="eas:getSafeJSString(current()/name)"/>","measures":[<xsl:for-each select="$thisPlanPerfMeasures"><xsl:variable name="thisCat" select="$planPerfCategories[name=current()/own_slot_value[slot_reference='pm_category']/value]"/><xsl:variable name="thisSQV" select="$planSQValues[name=current()/own_slot_value[slot_reference='pm_performance_value']/value][1]"/>{"category":"<xsl:value-of select="eas:getSafeJSString(string($thisCat[1]/own_slot_value[slot_reference='name']/value))"/>","value":"<xsl:value-of select="eas:getSafeJSString(string($thisSQV/own_slot_value[slot_reference='name']/value))"/>","score":"<xsl:value-of select="$thisSQV/own_slot_value[slot_reference='service_quality_value_score']/value"/>"}<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>]}<xsl:if test="not(position()=last())">,</xsl:if></xsl:if></xsl:for-each>];
                     var selectedRoadmapFilter = 'all';
-                    var selectedPriorityFilter = 'all';
+                    // Multi-select set of chosen priorities. Empty set = show all priorities.
+                    var selectedPriorities = {};
 
                     $(document).ready(function() {
                         var apiList = ['planDataAPI', 'ImpTechCapApi'];
@@ -95,7 +115,14 @@
                                 console.log('planDataAPI:', planDataAPI);
                                 console.log('ImpTechCapApi:', ImpTechCapApi);
                                 console.log('Embedded planPerfMeasures:', planPerfMeasures);
-                                allPlans = (planDataAPI.allPlans || []).filter(function(p) { return p.planStatus !== '0. Roadmap Idea (Outside DSP 25-32)'; });
+                                // Exclude "Outside DSP" plans and any plan with no status set.
+                                // "0. Roadmap Idea (Unplanned)" is kept (shown greyed out, no date bar).
+                                allPlans = (planDataAPI.allPlans || []).filter(function(p) {
+                                    var st = (p.planStatus || '').trim();
+                                    if (st === '') return false;
+                                    if (st === '0. Roadmap Idea (Outside DSP 25-32)') return false;
+                                    return true;
+                                });
                                 allRoadmaps = planDataAPI.roadmaps || [];
                                 allProjects = planDataAPI.allProject || [];
                                 techCapabilities = ImpTechCapApi.technology_capabilities || [];
@@ -117,9 +144,7 @@
                             opt.textContent = rm.name;
                             roadmapSelect.appendChild(opt);
                         });
-                        var prioritySelect = document.getElementById('filterPriority');
-                        prioritySelect.innerHTML = '&lt;option value="all"&gt;All Priorities&lt;/option&gt;';
-                        // Build priority options from planPerfMeasures - get unique values where category = Priority
+                        // Build priority options from planPerfMeasures - unique values where category = Priority
                         var priorities = new Map();
                         planPerfMeasures.forEach(function(planPerf) {
                             if (planPerf.measures) {
@@ -145,20 +170,37 @@
                         });
                         // Sort by order (Non-Negotiable=0, P1=1, P2=2... P8=8)
                         var sortedPriorities = Array.from(priorities.entries()).sort(function(a, b) { return a[1] - b[1]; });
+                        // Render multi-select priority checkboxes
+                        var prWrap = document.getElementById('priorityChecks');
+                        var prHtml = '';
                         sortedPriorities.forEach(function(entry) {
-                            var opt = document.createElement('option');
-                            opt.value = entry[0];
-                            opt.textContent = entry[0];
-                            prioritySelect.appendChild(opt);
+                            var val = entry[0];
+                            prHtml += '&lt;label class="pr-chk" data-priority="' + esc(val) + '"&gt;'
+                                + '&lt;input type="checkbox" value="' + esc(val) + '" onchange="onPriorityToggle(this)"/&gt;'
+                                + esc(val) + '&lt;/label&gt;';
                         });
+                        prWrap.innerHTML = prHtml || '&lt;span style="color:#9CA3AF;font-size:0.85rem;"&gt;No priorities found&lt;/span&gt;';
+
                         roadmapSelect.addEventListener('change', function() {
                             selectedRoadmapFilter = this.value;
                             renderView();
                         });
-                        prioritySelect.addEventListener('change', function() {
-                            selectedPriorityFilter = this.value;
-                            renderView();
-                        });
+                    }
+
+                    function esc(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&amp;/g,'&amp;amp;').replace(/&lt;/g,'&amp;lt;').replace(/&gt;/g,'&amp;gt;').replace(/"/g,'&amp;quot;'); }
+
+                    function onPriorityToggle(cb) {
+                        if (cb.checked) { selectedPriorities[cb.value] = true; }
+                        else { delete selectedPriorities[cb.value]; }
+                        if (cb.parentNode) cb.parentNode.classList.toggle('checked', cb.checked);
+                        renderView();
+                    }
+
+                    function priorityAll() {
+                        selectedPriorities = {};
+                        var boxes = document.querySelectorAll('#priorityChecks input[type=checkbox]');
+                        boxes.forEach(function(b){ b.checked = false; b.parentNode.classList.remove('checked'); });
+                        renderView();
                     }
 
                     function getPlansForRoadmap(roadmapId) {
@@ -175,9 +217,10 @@
                                 return planIdsInRoadmap.indexOf(plan.id) !== -1;
                             });
                         }
-                        if (selectedPriorityFilter !== 'all') {
+                        var chosen = Object.keys(selectedPriorities);
+                        if (chosen.length &gt; 0) {
                             filtered = filtered.filter(function(plan) {
-                                return getPlanPriority(plan.id) === selectedPriorityFilter;
+                                return selectedPriorities[getPlanPriority(plan.id)] === true;
                             });
                         }
                         return filtered;
@@ -273,7 +316,7 @@
                             groupedByRoadmap[rmName].push(plan);
                         });
                         Object.keys(groupedByRoadmap).sort().forEach(function(rmName) {
-                            html += '&lt;div style="margin-top:12px;margin-bottom:6px;font-weight:700;font-size:13px;color:#5b9bd5;border-bottom:1px solid #e0e0e0;padding-bottom:4px;"&gt;' + rmName + '&lt;/div&gt;';
+                            html += '&lt;div style="margin-top:12px;margin-bottom:6px;font-weight:700;font-size:15px;color:#361A54;border-bottom:1px solid #DDBDFF;padding-bottom:4px;"&gt;' + rmName + '&lt;/div&gt;';
                             groupedByRoadmap[rmName].forEach(function(plan) {
                                 var startDate = plan.validStartDate ? new Date(plan.validStartDate) : minDate;
                                 var endDate = plan.validEndDate ? new Date(plan.validEndDate) : new Date(2028, 11, 31);
@@ -291,11 +334,12 @@
                                     else if (s === '3. governance') statusClass = 'status-governance';
                                     else if (s === '4. delivery') statusClass = 'status-delivery';
                                 }
-                                html += '&lt;div class="plan-row"&gt;';
-                                html += '&lt;div class="plan-name" title="' + plan.name + '" onclick="showPlanDetail(\'' + plan.id + '\')" style="cursor:pointer;color:#5b9bd5;"&gt;' + plan.name + '&lt;/div&gt;';
+                                var isUnplanned = (plan.planStatus === '0. Roadmap Idea (Unplanned)');
+                                html += '&lt;div class="plan-row' + (isUnplanned ? ' unplanned' : '') + '"&gt;';
+                                html += '&lt;div class="plan-name" title="' + plan.name + '" onclick="showPlanDetail(\'' + plan.id + '\')" style="cursor:pointer;color:#361A54;"&gt;' + plan.name + '&lt;/div&gt;';
                                 html += '&lt;div class="plan-bar-container"&gt;';
-                                if (plan.planStatus === '0. Roadmap Idea (Unplanned)') {
-                                    html += '&lt;span style="font-size:11px;color:#999;font-style:italic;line-height:28px;"&gt;No current start date&lt;/span&gt;';
+                                if (isUnplanned) {
+                                    html += '&lt;span style="font-size:13px;color:#9CA3AF;font-style:italic;line-height:28px;"&gt;Unplanned &#8212; no current start date&lt;/span&gt;';
                                 } else {
                                     html += '&lt;div class="plan-bar ' + statusClass + '" style="left:' + leftPct + '%;width:' + widthPct + '%;" onclick="showPlanDetail(\'' + plan.id + '\')" title="' + plan.name + ' (' + (plan.planStatus || '') + ')"&gt;';
                                     html += '&lt;/div&gt;';
@@ -325,6 +369,11 @@
                         if (!plan) return;
                         var html = '';
                         html += '&lt;h3&gt;' + plan.name + '&lt;/h3&gt;';
+                        // Update Plan button -&gt; Strategic Plan Editor for this plan
+                        var editUrl = 'report?XML=reportXML.xml&amp;PMA=' + encodeURIComponent(plan.id)
+                            + '&amp;cl=en-gb&amp;XSL=ess_editor.xsl&amp;LABEL=' + encodeURIComponent('Strategic Plan Editor')
+                            + '&amp;EDITOR=store_110_Class30000';
+                        html += '&lt;a class="update-plan-btn" href="' + editUrl + '" target="_blank" rel="noopener"&gt;&#9998; Update Plan&lt;/a&gt;';
                         html += '&lt;div class="detail-meta"&gt;';
                         html += '&lt;div class="meta-item"&gt;&lt;div class="meta-label"&gt;Status&lt;/div&gt;&lt;div class="meta-value"&gt;' + (plan.planStatus || 'Not Set') + '&lt;/div&gt;&lt;/div&gt;';
                         html += '&lt;div class="meta-item"&gt;&lt;div class="meta-label"&gt;Roadmap&lt;/div&gt;&lt;div class="meta-value"&gt;' + getRoadmapForPlan(plan.id) + '&lt;/div&gt;&lt;/div&gt;';
@@ -413,25 +462,29 @@
                 <xsl:call-template name="Heading"/>
                 <xsl:call-template name="ViewUserScopingUI"/>
                 <div class="view-wrapper">
-                    <h1 style="margin-bottom:5px;">Explore UCL's Digital Strategic Plan</h1>
-                    <p style="color:#666;margin-bottom:20px;">Explore strategic plans on a timeline, filter by roadmap and priority, and drill into plan details including technology capability dependencies.</p>
+                    <h1>Explore UCL's Digital Strategic Plan</h1>
+                    <p class="subtitle">Explore strategic plans on a timeline, filter by roadmap and priority, and drill into plan details including technology capability dependencies.</p>
                     <div class="summary-cards">
                         <div class="summary-card"><div class="count" id="summaryTotal">0</div><div class="label">Total Plans</div></div>
-                        <div class="summary-card"><div class="count" id="summaryIdea" style="color:#5b9bd5;">0</div><div class="label">Roadmap Idea</div></div>
+                        <div class="summary-card"><div class="count" id="summaryIdea" style="color:#993AFF;">0</div><div class="label">Roadmap Idea</div></div>
                         <div class="summary-card"><div class="count" id="summaryDiscovery" style="color:#ed7d31;">0</div><div class="label">Discovery</div></div>
-                        <div class="summary-card"><div class="count" id="summaryGovernance" style="color:#9b59b6;">0</div><div class="label">Governance</div></div>
-                        <div class="summary-card"><div class="count" id="summaryDelivery" style="color:#70ad47;">0</div><div class="label">Delivery</div></div>
+                        <div class="summary-card"><div class="count" id="summaryGovernance" style="color:#5B2A87;">0</div><div class="label">Governance</div></div>
+                        <div class="summary-card"><div class="count" id="summaryDelivery" style="color:#12B76A;">0</div><div class="label">Delivery</div></div>
                     </div>
                     <div class="filters-bar">
-                        <div><label for="filterRoadmap">Roadmap:</label><select id="filterRoadmap"><option value="all">All Roadmaps</option></select></div>
-                        <div><label for="filterPriority">Priority:</label><select id="filterPriority"><option value="all">All Priorities</option></select></div>
+                        <div class="filter-group"><label for="filterRoadmap">Roadmap:</label><select id="filterRoadmap"><option value="all">All Roadmaps</option></select></div>
+                        <div class="filter-group">
+                            <label>Priority <span style="font-weight:400;color:#9CA3AF;font-size:0.82rem;">(select one or more; none = all)</span></label>
+                            <div class="priority-checks" id="priorityChecks"></div>
+                            <div class="pr-actions"><a onclick="priorityAll()">Clear / show all</a></div>
+                        </div>
                     </div>
                     <div class="legend">
-                        <div class="legend-item"><div class="legend-swatch" style="background:#5b9bd5;"/><xsl:text> </xsl:text>1. Roadmap Idea</div>
+                        <div class="legend-item"><div class="legend-swatch" style="background:#993AFF;"/><xsl:text> </xsl:text>1. Roadmap Idea</div>
                         <div class="legend-item"><div class="legend-swatch" style="background:#ed7d31;"/><xsl:text> </xsl:text>2. Discovery</div>
-                        <div class="legend-item"><div class="legend-swatch" style="background:#9b59b6;"/><xsl:text> </xsl:text>3. Governance</div>
-                        <div class="legend-item"><div class="legend-swatch" style="background:#70ad47;"/><xsl:text> </xsl:text>4. Delivery</div>
-                        <div class="legend-item"><div class="legend-swatch" style="background:#bdc3c7;"/><xsl:text> </xsl:text>Not Set</div>
+                        <div class="legend-item"><div class="legend-swatch" style="background:#5B2A87;"/><xsl:text> </xsl:text>3. Governance</div>
+                        <div class="legend-item"><div class="legend-swatch" style="background:#12B76A;"/><xsl:text> </xsl:text>4. Delivery</div>
+                        <div class="legend-item"><div class="legend-swatch" style="background:#DDBDFF;opacity:0.65;"/><xsl:text> </xsl:text>0. Roadmap Idea (Unplanned)</div>
                     </div>
                     <div class="roadmap-container" id="mainContent">
                         <div id="roadmapArea"><p>Loading strategic plans...</p></div>
