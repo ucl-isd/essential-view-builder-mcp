@@ -142,6 +142,8 @@
                         <xsl:variable name="userActors" select="$allActors[name = $userRels/own_slot_value[slot_reference='act_to_role_from_actor']/value]"/>
                         <!-- Portfolio owner: an owner Group_Actor whose name contains 'Portfolio' or 'Product' -->
                         <xsl:variable name="portfolioOwners" select="$ownerActors[type='Group_Actor'][contains(own_slot_value[slot_reference='name']/value,'Portfolio') or contains(own_slot_value[slot_reference='name']/value,'Product')]"/>
+                        <!-- Portfolio-only owner (for the top summary charts): a Group_Actor named '... (Portfolio)' -->
+                        <xsl:variable name="portfolioOnlyOwners" select="$ownerActors[type='Group_Actor'][contains(own_slot_value[slot_reference='name']/value,'Portfolio')]"/>
                         {
                         "id":"<xsl:value-of select="eas:jsonText(string($cap/name))"/>",
                         "name":"<xsl:value-of select="eas:jsonText(string($cap/own_slot_value[slot_reference='name']/value))"/>",
@@ -158,6 +160,8 @@
                         "hasOwner":<xsl:value-of select="exists($ownerActors)"/>,
                         "hasUser":<xsl:value-of select="exists($userActors)"/>,
                         "hasPortfolioOwner":<xsl:value-of select="exists($portfolioOwners)"/>,
+                        "hasPortfolioOnly":<xsl:value-of select="exists($portfolioOnlyOwners)"/>,
+                        "portfolioOnly":"<xsl:value-of select="eas:jsonText(string($portfolioOnlyOwners[1]/own_slot_value[slot_reference='name']/value))"/>",
                         "ownerNames":[<xsl:for-each select="$ownerActors">"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
                         "userNames":[<xsl:for-each select="$userActors">"<xsl:value-of select="eas:jsonText(string(current()/own_slot_value[slot_reference='name']/value))"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
                         "portfolio":"<xsl:value-of select="eas:jsonText(string($portfolioOwners[1]/own_slot_value[slot_reference='name']/value))"/>"
@@ -208,11 +212,11 @@
                         var ragEl = document.getElementById('overallRag');
                         ragEl.textContent = overallPct + '%';
                         ragEl.style.background = ragColour(overallPct);
-                        // Group apps by portfolio
+                        // Group apps by portfolio only (Product owners are excluded from this chart)
                         var groups = {};
                         var noPfApps = [];
                         CAPS.forEach(function(c){
-                            if (c.hasPortfolioOwner &amp;&amp; c.portfolio){ (groups[c.portfolio] = groups[c.portfolio] || []).push(c); }
+                            if (c.hasPortfolioOnly &amp;&amp; c.portfolioOnly){ (groups[c.portfolioOnly] = groups[c.portfolioOnly] || []).push(c); }
                             else noPfApps.push(c);
                         });
                         var rows = Object.keys(groups).map(function(k){ return {name:k, apps:groups[k]}; });
@@ -232,7 +236,7 @@
                             html += '&lt;/div&gt;';
                         });
                         document.getElementById('pfSplit').innerHTML = html;
-                        // Portfolio filter options
+                        // Portfolio filter options (portfolios only, matching the chart above)
                         var sel = document.getElementById('pfFilter');
                         rows.forEach(function(r){
                             var opt = document.createElement('option');
@@ -250,8 +254,8 @@
                         var onlyIncomplete = document.getElementById('incompleteOnly').checked;
                         var rows = CAPS.filter(function(c){
                             if (filterText &amp;&amp; c.name.toLowerCase().indexOf(filterText) === -1) return false;
-                            if (pf === '__none__'){ if (c.hasPortfolioOwner) return false; }
-                            else if (pf !== 'all'){ if (c.portfolio !== pf) return false; }
+                            if (pf === '__none__'){ if (c.hasPortfolioOnly) return false; }
+                            else if (pf !== 'all'){ if (c.portfolioOnly !== pf) return false; }
                             if (onlyIncomplete &amp;&amp; completeness(c).ok === PROPS.length) return false;
                             return true;
                         });
