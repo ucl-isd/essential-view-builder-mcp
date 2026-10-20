@@ -33,6 +33,9 @@
 	<xsl:variable name="allTechProds" select="/node()/simple_instance[type = 'Technology_Product']"></xsl:variable>
 	<xsl:variable name="allPlanningActions" select="/node()/simple_instance[type = 'Planning_Action']"></xsl:variable>
 
+	<!-- Costs keyed by the EA element they apply to (slot is on the Cost instance) -->
+	<xsl:key name="costsByElement" match="/node()/simple_instance[type = 'Cost']" use="own_slot_value[slot_reference = 'cost_for_elements']/value"></xsl:key>
+
 	<xsl:key name="p2eByPlan" match="/node()/simple_instance[type = 'PLAN_TO_ELEMENT_RELATION']" use="own_slot_value[slot_reference = 'plan_to_element_plan']/value"></xsl:key>
 
 	<!-- objectives keyed by the plan they support (slot is on the objective) -->
@@ -90,6 +93,7 @@
 					<xsl:variable name="pid" select="current()/name"></xsl:variable>
 					<xsl:variable name="pname" select="replace(translate(current()/own_slot_value[slot_reference = 'name']/value, '&quot;', &quot;&apos;&quot;), '&amp;', 'and')"></xsl:variable>
 					<xsl:variable name="pdesc" select="replace(replace(translate(current()/own_slot_value[slot_reference = 'description']/value, '&quot;&#xA;&#xD;', &quot;&apos;  &quot;), '&amp;', 'and'), '\\', '/')"></xsl:variable>
+					<xsl:variable name="pshortdesc" select="replace(replace(translate(current()/own_slot_value[slot_reference = 'short_description']/value, '&quot;&#xA;&#xD;', &quot;&apos;  &quot;), '&amp;', 'and'), '\\', '/')"></xsl:variable>
 					<xsl:variable name="pstart" select="current()/own_slot_value[slot_reference = 'strategic_plan_valid_from_date_iso_8601']/value"></xsl:variable>
 					<xsl:variable name="pend" select="current()/own_slot_value[slot_reference = 'strategic_plan_valid_to_date_iso_8601']/value"></xsl:variable>
 					<xsl:variable name="pstatusInst" select="$allPlanningStatus[name = current()/own_slot_value[slot_reference = 'strategic_plan_status']/value]"></xsl:variable>
@@ -104,10 +108,14 @@
 					<xsl:variable name="impactedRisks" select="$allRisks[name = $impactedElementIds]"></xsl:variable>
 					<xsl:variable name="impactedApps" select="$allApps[name = $impactedElementIds]"></xsl:variable>
 					<xsl:variable name="impactedTechProds" select="$allTechProds[name = $impactedElementIds]"></xsl:variable>
+					<xsl:variable name="thisCosts" select="key('costsByElement', $pid)"></xsl:variable>
+					<xsl:variable name="thisCostComponents" select="/node()/simple_instance[name = $thisCosts/own_slot_value[slot_reference = 'cost_components']/value]"></xsl:variable>
 					{"id":"<xsl:value-of select="$pid"/>",
 					"roadmaps":[<xsl:if test="$roadmap1/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid">"technical"</xsl:if><xsl:if test="$roadmap1/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid and ($roadmap2/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid or $roadmap3/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid or $roadmap4/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid)">,</xsl:if><xsl:if test="$roadmap2/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid">"supporting"</xsl:if><xsl:if test="$roadmap2/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid and ($roadmap3/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid or $roadmap4/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid)">,</xsl:if><xsl:if test="$roadmap3/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid">"research"</xsl:if><xsl:if test="$roadmap3/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid and $roadmap4/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid">,</xsl:if><xsl:if test="$roadmap4/own_slot_value[slot_reference = 'roadmap_strategic_plans']/value = $pid">"education"</xsl:if>],
 					"name":"<xsl:value-of select="$pname"/>",
 					"description":"<xsl:value-of select="$pdesc"/>",
+					"shortDescription":"<xsl:value-of select="$pshortdesc"/>",
+					"costs":[<xsl:for-each select="$thisCostComponents">{"description":"<xsl:value-of select="replace(replace(translate(current()/own_slot_value[slot_reference = 'description']/value, '&quot;&#xA;&#xD;', &quot;&apos;  &quot;), '&amp;', 'and'), '\\', '/')"/>","amount":"<xsl:value-of select="current()/own_slot_value[slot_reference = 'cc_cost_amount']/value"/>","startDate":"<xsl:value-of select="current()/own_slot_value[slot_reference = 'cc_cost_start_date_iso_8601']/value"/>","endDate":"<xsl:value-of select="current()/own_slot_value[slot_reference = 'cc_cost_end_date_iso_8601']/value"/>"}<xsl:if test="position() != last()">,</xsl:if></xsl:for-each>],
 					"startDate":"<xsl:value-of select="$pstart"/>",
 					"endDate":"<xsl:value-of select="$pend"/>",
 					"status":"<xsl:value-of select="$pstatus"/>",
@@ -300,11 +308,13 @@
 					var html = '&lt;table class="table table-bordered table-striped table-hover"&gt;';
 					html += '&lt;thead&gt;&lt;tr&gt;';
 					html += '&lt;th style="cursor:pointer;" onclick="handleSort(\'name\')"&gt;Plan Name' + sortIndicator('name') + '&lt;/th&gt;';
+					html += '&lt;th&gt;Short Description&lt;/th&gt;';
 					html += '&lt;th style="cursor:pointer;" onclick="handleSort(\'priority\')"&gt;Priority' + sortIndicator('priority') + '&lt;/th&gt;';
 					html += '&lt;th style="cursor:pointer;" onclick="handleSort(\'status\')"&gt;Status' + sortIndicator('status') + '&lt;/th&gt;';
 					html += '&lt;th style="cursor:pointer;" onclick="handleSort(\'startDate\')"&gt;Start Date' + sortIndicator('startDate') + '&lt;/th&gt;';
 					html += '&lt;th style="cursor:pointer;" onclick="handleSort(\'endDate\')"&gt;End Date' + sortIndicator('endDate') + '&lt;/th&gt;';
 					html += '&lt;th style="cursor:pointer;" onclick="handleSort(\'sponsors\')"&gt;Sponsors' + sortIndicator('sponsors') + '&lt;/th&gt;';
+					html += '&lt;th&gt;Costs&lt;/th&gt;';
 					html += '&lt;th&gt;Benefits&lt;/th&gt;&lt;th&gt;DSP Metrics&lt;/th&gt;&lt;th&gt;Impacts&lt;/th&gt;&lt;th&gt;Supports&lt;/th&gt;&lt;th&gt;Depends On&lt;/th&gt;';
 					html += '&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;';
 					plans.forEach(function(plan){
@@ -316,6 +326,8 @@
 						html += '&lt;div style="margin-top:4px;"&gt;&lt;ul style="list-style:disc;padding-left:16px;margin:0;"&gt;&lt;li&gt;&lt;a href="report?XML=reportXML.xml&amp;PMA=' + plan.id + '&amp;cl=en-gb&amp;XSL=enterprise%2Fcore_el_strategic_plan_summary.xsl&amp;PAGEXSL=&amp;LABEL=Strategic+Plan+Summary+-' + plan.id + 'Link&amp;essscope=W10%253D" target="_blank" style="font-size:11px;color:#993bff;"&gt;View ' + plan.name + '&lt;/a&gt;&lt;/li&gt;';
 						html += '&lt;li&gt;&lt;a href="report?XML=reportXML.xml&amp;PMA=' + plan.id + '&amp;cl=en-gb&amp;XSL=ess_editor.xsl&amp;LABEL=Strategic%20Plan%20Editor&amp;EDITOR=store_110_Class30000&amp;SECTION=" target="_blank" style="font-size:11px;color:#993bff;"&gt;Edit ' + plan.name + '&lt;/a&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;';
 						html += '&lt;/td&gt;';
+						/* Short Description column */
+						html += '&lt;td&gt;' + (plan.shortDescription ? '&lt;div class="plan-desc"&gt;' + plan.shortDescription + '&lt;/div&gt;' : '-') + '&lt;/td&gt;';
 						/* Priority column - same pattern as Benefits/DSP */
 						var priorityVal = getPriorityVal(plan) || '-';
 						html += '&lt;td&gt;' + priorityVal + '&lt;/td&gt;';
@@ -323,6 +335,21 @@
 						html += '&lt;td&gt;' + (plan.startDate || '-') + '&lt;/td&gt;';
 						html += '&lt;td&gt;' + (plan.endDate || '-') + '&lt;/td&gt;';
 						html += '&lt;td&gt;' + (plan.sponsors.length &gt; 0 ? plan.sponsors.join('&lt;br&gt;') : '-') + '&lt;/td&gt;';
+						/* Costs column - amount in millions per description, with dates */
+						if(plan.costs &amp;&amp; plan.costs.length &gt; 0){
+							html += '&lt;td&gt;&lt;ul class="pm-list"&gt;';
+							plan.costs.forEach(function(c){
+								var m = parseFloat(c.amount);
+								var amountLabel = isNaN(m) ? (c.amount || '-') : ('&#163;' + (m / 1000000).toFixed(2) + 'm');
+								html += '&lt;li class="pm-item"&gt;' + (c.description || '-');
+								html += '&lt;span class="pm-value" style="background:#eedeff;"&gt;' + amountLabel + '&lt;/span&gt;';
+								if(c.startDate || c.endDate){
+									html += '&lt;div style="font-size:10px;color:#777;"&gt;' + (c.startDate || '?') + ' &amp;ndash; ' + (c.endDate || '?') + '&lt;/div&gt;';
+								}
+								html += '&lt;/li&gt;';
+							});
+							html += '&lt;/ul&gt;&lt;/td&gt;';
+						} else { html += '&lt;td&gt;-&lt;/td&gt;'; }
 						if(plan.performanceMeasures.length &gt; 0){
 							var benefits = plan.performanceMeasures.filter(function(pm){ return pm.name.split(' of ')[0].indexOf('Benefit') === 0; }).sort(function(a,b){ return a.name.localeCompare(b.name); });
 							var dspMetrics = plan.performanceMeasures.filter(function(pm){ return pm.name.split(' of ')[0].indexOf('DSP') === 0; }).sort(function(a,b){ return a.name.localeCompare(b.name); });
