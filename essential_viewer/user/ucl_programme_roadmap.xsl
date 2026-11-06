@@ -11,6 +11,7 @@
     <xsl:variable name="allA2R" select="/node()/simple_instance[type='ACTOR_TO_ROLE_RELATION']"/>
     <xsl:variable name="allActors" select="/node()/simple_instance[type=('Group_Actor','Individual_Actor')]"/>
     <xsl:variable name="allRoadmaps" select="/node()/simple_instance[type='Roadmap']"/>
+    <xsl:variable name="allExtLinks" select="/node()/simple_instance[type='External_Reference_Link']"/>
 
     <!-- Category instances by name -->
     <xsl:variable name="catClassification" select="$allPMCats[own_slot_value[slot_reference='name']/value='Change Classification']"/>
@@ -46,13 +47,40 @@
         </xsl:choose>
     </xsl:function>
 
-    <!-- Resolve the portfolio (actor name) for a programme via its 'Programme Manager' stakeholder relation -->
+    <!-- Business roles whose name marks the portfolio lead ('Lead Portfolio', formerly 'Programme Manager') -->
+    <xsl:variable name="allBusRoles" select="/node()/simple_instance[type=('Group_Business_Role','Individual_Business_Role')]"/>
+    <xsl:variable name="portfolioRoles" select="$allBusRoles[own_slot_value[slot_reference='name']/value=('Lead Portfolio','Programme Manager')]"/>
+
+    <!-- Resolve the portfolio (actor name) for a programme from its stakeholders:
+         the relation whose role is 'Lead Portfolio' (matched by role instance, falling back to
+         relation_name ending 'as Lead Portfolio' / 'as Programme Manager'). 'Lead Portfolio' is preferred. -->
     <xsl:function name="eas:portfolio">
         <xsl:param name="prog"/>
         <xsl:variable name="rels" select="$allA2R[name = $prog/own_slot_value[slot_reference='stakeholders']/value]"/>
-        <xsl:variable name="pmRel" select="$rels[ends-with(own_slot_value[slot_reference='relation_name']/value, 'as Programme Manager')]"/>
-        <xsl:variable name="actor" select="$allActors[name = $pmRel[1]/own_slot_value[slot_reference='act_to_role_from_actor']/value]"/>
+        <xsl:variable name="leadRole" select="$portfolioRoles[own_slot_value[slot_reference='name']/value='Lead Portfolio']"/>
+        <xsl:variable name="byLeadRole" select="$rels[own_slot_value[slot_reference='act_to_role_to_role']/value = $leadRole/name]"/>
+        <xsl:variable name="byLeadName" select="$rels[ends-with(own_slot_value[slot_reference='relation_name']/value, 'as Lead Portfolio')]"/>
+        <xsl:variable name="byAnyRole" select="$rels[own_slot_value[slot_reference='act_to_role_to_role']/value = $portfolioRoles/name]"/>
+        <xsl:variable name="byOldName" select="$rels[ends-with(own_slot_value[slot_reference='relation_name']/value, 'as Programme Manager')]"/>
+        <xsl:variable name="pmRel" select="($byLeadRole, $byLeadName, $byAnyRole, $byOldName)[1]"/>
+        <xsl:variable name="actor" select="$allActors[name = $pmRel/own_slot_value[slot_reference='act_to_role_from_actor']/value]"/>
         <xsl:value-of select="string($actor[1]/own_slot_value[slot_reference='name']/value)"/>
+    </xsl:function>
+
+    <!-- All performance-measure labels for an element in a category (e.g. 'Jira Component'), as a JSON string array body -->
+    <xsl:function name="eas:pmValues" as="xs:string*">
+        <xsl:param name="elem"/>
+        <xsl:param name="catName"/>
+        <xsl:variable name="cat" select="$allPMCats[own_slot_value[slot_reference='name']/value=$catName]"/>
+        <xsl:variable name="pms" select="$allPMs[own_slot_value[slot_reference='pm_measured_element']/value = $elem/name][own_slot_value[slot_reference='pm_category']/value = $cat/name]"/>
+        <xsl:for-each select="$pms">
+            <xsl:variable name="val" select="$allSQV[name = current()/own_slot_value[slot_reference='pm_performance_value']/value]"/>
+            <xsl:variable name="label" select="string($val[1]/own_slot_value[slot_reference='service_quality_value_value']/value)"/>
+            <xsl:choose>
+                <xsl:when test="normalize-space($label) != ''"><xsl:sequence select="$label"/></xsl:when>
+                <xsl:otherwise><xsl:sequence select="replace(string($val[1]/own_slot_value[slot_reference='name']/value), '^.* - ', '')"/></xsl:otherwise>
+            </xsl:choose>
+        </xsl:for-each>
     </xsl:function>
 
     <xsl:template match="/">
@@ -65,12 +93,12 @@
                     :root{--p800:#361A54;--p700:#4A1B94;--p600:#6023C0;--p400:#993AFF;--p200:#DDBDFF;--p50:#F5F0FF;--g50:#F9FAFB;--g100:#F3F4F6;--g200:#E5E7EB;--g500:#6B7280;--g600:#4B5563;--g900:#111827;--success:#1AAB40;--warning:#F59E0B;--error:#DC2626;--discovery:#2AA198;--elaboration:#7B2DF8;--delivery:#361A54;}
                     *{margin:0;padding:0;box-sizing:border-box;}
                     body{font-family:'DM Sans',sans-serif;background:#F9FAFB;color:var(--g900);padding:24px;}
-                    .roadmap-container{max-width:1500px;margin:0 auto;}
+                    .roadmap-container{max-width:1780px;margin:0 auto;}
                     .roadmap-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
                     .roadmap-header h1{font-size:1.5rem;font-weight:700;color:var(--p800);}
                     .roadmap-header .meta{font-size:0.8rem;color:var(--g500);}
                     /* term grid header */
-                    .term-header{display:grid;grid-template-columns:308px repeat(8,1fr);border-bottom:2px solid var(--g200);}
+                    .term-header{display:grid;grid-template-columns:588px repeat(8,1fr);border-bottom:2px solid var(--g200);}
                     .term-header .label-col{padding:8px;font-size:0.75rem;color:var(--g500);}
                     .term-cell{text-align:center;padding:10px 4px;font-size:0.78rem;font-weight:600;color:#fff;background:var(--p800);border-left:1px solid var(--p700);}
                     /* classification group */
@@ -82,7 +110,7 @@
                     .class-maintain{background:var(--g200);color:#1F2937;}
                     .class-other{background:var(--g200);color:#1F2937;}
                     /* epic (programme) row */
-                    .epic-row{display:grid;grid-template-columns:280px 1fr;min-height:44px;border-bottom:1px solid var(--g200);position:relative;}
+                    .epic-row{display:grid;grid-template-columns:560px 1fr;min-height:44px;border-bottom:1px solid var(--g200);position:relative;}
                     .epic-row:hover{background:var(--g50);}
                     .epic-label{padding:8px 12px 8px 8px;display:flex;align-items:center;gap:8px;font-size:0.78rem;font-weight:600;color:var(--g900);}
                     .epic-label .rag{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,0.3);}
@@ -135,6 +163,18 @@
                     .dp-empty{font-size:0.8rem;color:var(--g500);font-style:italic;}
                     .dp-close{position:absolute;top:12px;right:12px;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--g500);}
                     .dp-close:hover{color:var(--g900);}
+                    .dp-update-btn{display:inline-block;background:var(--p400);color:#fff;text-decoration:none;padding:9px 16px;border-radius:6px;font-weight:600;font-size:0.85rem;margin-bottom:14px;}
+                    .dp-update-btn:hover{background:var(--p600);color:#fff;}
+                    .jira-filter{margin-bottom:16px;display:flex;flex-direction:column;gap:6px;}
+                    .jf-title{font-size:0.85rem;font-weight:700;color:var(--p800);}
+                    .jf-hint{font-weight:400;color:var(--g500);font-size:0.75rem;}
+                    .jira-checks{display:flex;flex-wrap:wrap;gap:8px;}
+                    .jc-chk{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--p200);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--p800);user-select:none;}
+                    .jc-chk:hover{background:var(--p50);}
+                    .jc-chk.checked{background:#EDE4FF;border-color:var(--p400);}
+                    .jc-chk input{cursor:pointer;accent-color:var(--p600);}
+                    .jf-clear{font-size:0.78rem;font-weight:600;color:var(--p600);text-decoration:underline;cursor:pointer;align-self:flex-start;}
+                    .jira-pill{display:inline-block;background:var(--p50);color:var(--p600);border:1px solid var(--p200);border-radius:10px;padding:1px 8px;font-size:0.68rem;font-weight:700;margin-left:6px;white-space:nowrap;vertical-align:middle;}
                     .rag-dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle;margin-right:6px;}
                 </style>
             </head>
@@ -143,6 +183,11 @@
                     <div class="roadmap-header">
                         <h1>UCL Delivery Roadmaps</h1>
                         <div class="meta">Stage 1 preview &#8226; Programmes: <xsl:value-of select="count($allProgrammes)"/> &#8226; Projects: <xsl:value-of select="count($allProjects)"/></div>
+                    </div>
+                    <div class="jira-filter" id="jiraFilter">
+                        <span class="jf-title">Jira Component <span class="jf-hint">(select one or more; none = all)</span></span>
+                        <div class="jira-checks" id="jiraChecks"></div>
+                        <a class="jf-clear" onclick="clearJira()">Clear / show all</a>
                     </div>
                     <nav class="portfolio-nav" id="portfolioNav"></nav>
                     <div id="portfolioSections"><p>Loading...</p></div>
@@ -171,6 +216,8 @@
                         "portfolio":"<xsl:value-of select="eas:jsonText(eas:portfolio($prog))"/>",
                         "classification":"<xsl:value-of select="eas:jsonText(eas:pmValue($prog,'Change Classification'))"/>",
                         "rag":"<xsl:value-of select="eas:jsonText(eas:pmValue($prog,'RAG'))"/>",
+                        "updateUrl":"<xsl:value-of select="eas:jsonText(string(($allExtLinks[name = $prog/own_slot_value[slot_reference='external_reference_links']/value]/own_slot_value[slot_reference='external_reference_url']/value[normalize-space(.)!=''])[1]))"/>",
+                        "jira":[<xsl:for-each select="eas:pmValues($prog,'Jira Component')[normalize-space(.)!='']">"<xsl:value-of select="eas:jsonText(.)"/>"<xsl:if test="not(position()=last())">,</xsl:if></xsl:for-each>],
                         "discoveryStart":"<xsl:value-of select="$prog/own_slot_value[slot_reference='Discovery Planned Start']/value"/>",
                         "discoveryEnd":"<xsl:value-of select="$prog/own_slot_value[slot_reference='Discovery Due Date']/value"/>",
                         "elaborationStart":"<xsl:value-of select="$prog/own_slot_value[slot_reference='Elaboration Planned Start']/value"/>",
@@ -203,7 +250,9 @@
                         phases.forEach(function(ph){
                             var start=ph[1], end=ph[2];
                             if(!start) return;
-                            var before=beforeChart(start); if(before) hasPre=true;
+                            var before=beforeChart(start);
+                            // Only flag as continuing if it started before the chart and runs into it (open-ended or ends on/after chart start)
+                            if(before){ var endD=parseD(end); if(endD===null || endD>=CHART_START) hasPre=true; }
                             var left=before?0:pct(start);
                             var width, extra='';
                             if(end){ width=pct(end)-left; } else { width=8; extra=' opacity:0.6;'; }
@@ -228,11 +277,17 @@
                     }
                     function gridLines(){ var h=''; for(var i=0;i&lt;8;i++) h+='&lt;div class="grid-line"&gt;&lt;/div&gt;'; return '&lt;div class="grid-lines"&gt;'+h+'&lt;/div&gt;'; }
 
+                    // Jira Component pills (performance measure category 'Jira Component')
+                    function jiraPills(p){
+                        if(!p.jira || !p.jira.length) return '';
+                        return p.jira.map(function(j){ return '&lt;span class="jira-pill" title="Jira Component"&gt;'+esc(j)+'&lt;/span&gt;'; }).join('');
+                    }
+
                     function programmeRow(p){
                         var rag=ragClass(p.rag);
                         var ragSpan = rag ? '&lt;span class="rag '+rag+'"&gt;&lt;/span&gt;' : '';
                         return '&lt;div class="epic-row" onclick="openProgramme(\''+p.id+'\')" style="cursor:pointer;"&gt;'
-                            + '&lt;div class="epic-label"&gt;'+ragSpan+esc(p.name)+'&lt;/div&gt;'
+                            + '&lt;div class="epic-label"&gt;'+ragSpan+'&lt;span&gt;'+esc(p.name)+jiraPills(p)+'&lt;/span&gt;&lt;/div&gt;'
                             + '&lt;div class="timeline-area"&gt;'+gridLines()+phaseBars(p)+projectDiamonds(p)+'&lt;/div&gt;'
                             + '&lt;/div&gt;';
                     }
@@ -280,11 +335,13 @@
                         var html='&lt;button class="dp-close" onclick="closeDetail()"&gt;&#215;&lt;/button&gt;';
                         html+='&lt;div class="dp-kicker"&gt;Delivery Initiative&lt;/div&gt;';
                         html+='&lt;h3&gt;'+esc(p.name)+'&lt;/h3&gt;';
+                        if(p.updateUrl) html+='&lt;a class="dp-update-btn" href="'+esc(p.updateUrl).replace(/"/g,'&amp;quot;')+'" target="_blank" rel="noopener"&gt;&#9998; update this Initiative&lt;/a&gt;';
                         html+='&lt;dl class="dp-meta"&gt;';
                         html+=detailRow('Reference', p.ref);
                         html+=detailRow('Portfolio', p.portfolio);
                         html+=detailRow('Change Classification', p.classification);
                         if(p.rag) html+='&lt;dt&gt;RAG&lt;/dt&gt;&lt;dd&gt;'+ragDot(p.rag)+esc(p.rag)+'&lt;/dd&gt;';
+                        if(p.jira &amp;&amp; p.jira.length) html+='&lt;dt&gt;Jira Component&lt;/dt&gt;&lt;dd&gt;'+jiraPills(p)+'&lt;/dd&gt;';
                         if(p.roadmap) html+=detailRow('DSP Roadmap', p.roadmap);
                         html+=detailRow('Description', p.description);
                         html+=phaseRow('Discovery', p.discoveryStart, p.discoveryEnd);
@@ -330,14 +387,65 @@
                     }
 
                     // ---- Tabs: render all portfolios ----
+                    // ---- Jira Component filter (multi-select checkboxes; none ticked = show all) ----
+                    var selectedJira={};
+                    var activeTab=null;
+                    function matchesJira(p){
+                        var chosen=Object.keys(selectedJira);
+                        if(!chosen.length) return true;
+                        return (p.jira||[]).some(function(j){ return selectedJira[j]===true; });
+                    }
+                    function visibleProgrammes(){ return PROGRAMMES.filter(matchesJira); }
+
+                    function buildJiraFilter(){
+                        var set={};
+                        PROGRAMMES.forEach(function(p){ (p.jira||[]).forEach(function(j){ set[j]=true; }); });
+                        var names=Object.keys(set).sort();
+                        var wrap=document.getElementById('jiraChecks');
+                        if(!names.length){ document.getElementById('jiraFilter').style.display='none'; return; }
+                        wrap.innerHTML=names.map(function(n){
+                            return '&lt;label class="jc-chk"&gt;&lt;input type="checkbox" value="'+esc(n).replace(/"/g,'&amp;quot;')+'" onchange="onJiraToggle(this)"/&gt;'+esc(n)+'&lt;/label&gt;';
+                        }).join('');
+                    }
+                    function onJiraToggle(cb){
+                        if(cb.checked) selectedJira[cb.value]=true; else delete selectedJira[cb.value];
+                        if(cb.parentNode) cb.parentNode.classList.toggle('checked', cb.checked);
+                        buildTabs();
+                    }
+                    function clearJira(){
+                        selectedJira={};
+                        var boxes=document.querySelectorAll('#jiraChecks input[type=checkbox]');
+                        for(var i=0;i&lt;boxes.length;i++){ boxes[i].checked=false; boxes[i].parentNode.classList.remove('checked'); }
+                        buildTabs();
+                    }
+
                     function renderPortfolioSection(name){
-                        var list=PROGRAMMES.filter(function(p){ return (p.portfolio||'(no portfolio)')===name; });
+                        var list=visibleProgrammes().filter(function(p){ return (p.portfolio||'(no portfolio)')===name; });
                         var html=termHeader();
                         html+='&lt;div class="di-rows"&gt;'+classificationGroups(list)+'&lt;/div&gt;';
                         return html;
                     }
 
+                    // Build portfolio tabs + sections for the programmes that pass the filter
+                    function buildTabs(){
+                        var portfolios=[];
+                        visibleProgrammes().forEach(function(p){ var k=p.portfolio||'(no portfolio)'; if(portfolios.indexOf(k)===-1) portfolios.push(k); });
+                        portfolios.sort();
+                        var sids=portfolios.map(function(n){ return n.replace(/[^A-Za-z0-9]/g,'-'); });
+                        if(!activeTab || sids.indexOf(activeTab)===-1) activeTab=sids[0]||null;
+                        var navHtml='', secHtml='';
+                        portfolios.forEach(function(name, idx){
+                            var sid=sids[idx];
+                            var on=(sid===activeTab);
+                            navHtml+='&lt;a id="pf-nav-'+sid+'" class="pf-link'+(on?' active':'')+'" onclick="showTab(\''+sid+'\')"&gt;'+esc(name)+'&lt;/a&gt;';
+                            secHtml+='&lt;div class="portfolio-section" id="pf-section-'+sid+'" style="display:'+(on?'block':'none')+';"&gt;'+renderPortfolioSection(name)+'&lt;/div&gt;';
+                        });
+                        document.getElementById('portfolioNav').innerHTML=navHtml;
+                        document.getElementById('portfolioSections').innerHTML=secHtml||'&lt;div class="no-data"&gt;No programmes match the selected Jira Components.&lt;/div&gt;';
+                    }
+
                     function showTab(name){
+                        activeTab=name;
                         var secs=document.querySelectorAll('#portfolioSections .portfolio-section');
                         for(var i=0;i&lt;secs.length;i++) secs[i].style.display='none';
                         var navs=document.querySelectorAll('#portfolioNav a');
@@ -350,18 +458,8 @@
 
                     document.addEventListener('DOMContentLoaded', function(){
                         console.log('Programmes:', PROGRAMMES);
-                        var portfolios=[];
-                        PROGRAMMES.forEach(function(p){ var k=p.portfolio||'(no portfolio)'; if(portfolios.indexOf(k)===-1) portfolios.push(k); });
-                        portfolios.sort();
-
-                        var navHtml='', secHtml='';
-                        portfolios.forEach(function(name, idx){
-                            var sid=name.replace(/[^A-Za-z0-9]/g,'-');
-                            navHtml+='&lt;a id="pf-nav-'+sid+'" class="pf-link'+(idx===0?' active':'')+'" onclick="showTab(\''+sid+'\')"&gt;'+esc(name)+'&lt;/a&gt;';
-                            secHtml+='&lt;div class="portfolio-section" id="pf-section-'+sid+'" style="display:'+(idx===0?'block':'none')+';"&gt;'+renderPortfolioSection(name)+'&lt;/div&gt;';
-                        });
-                        document.getElementById('portfolioNav').innerHTML=navHtml;
-                        document.getElementById('portfolioSections').innerHTML=secHtml;
+                        buildJiraFilter();
+                        buildTabs();
                     });
                     // close detail on Escape
                     document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeDetail(); });
